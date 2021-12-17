@@ -22,35 +22,10 @@ from stable_baselines3.common.callbacks import EvalCallback
 from stable_baselines3.common.env_checker import check_env
 
 
-#action_b      = [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] # B
-#action_y      = [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] # Y
-#action_blank1 = [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0] # SELECT
-#action_blank2 = [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0] # START
-#action_up     = [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0] # UP
-#action_down   = [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0] # DOWN
-#action_left   = [0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0] # LEFT
-#action_right  = [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0] # RIGHT
-#action_a      = [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0] # A
-#action_x      = [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0] # X
-#action_l      = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0] # L
-#action_r      = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1] # R
-
-
-def make_retro():
-    env = retro.make(game='SuperMarioWorld-Snes', state='YoshiIsland2')
+def create_env(state):
+    env = retro.make('SuperMarioWorld-Snes', state)
     env = StochasticFrameSkip(env, n=4, stickprob=0.25)
     env = TimeLimit(env, max_episode_steps=4500)
-    return env
-
-
-def make_retro_disc():
-    env = MarioWorldDiscretizer(retro.make(game='SuperMarioWorld-Snes', state='YoshiIsland2'))
-    env = StochasticFrameSkip(env, n=4, stickprob=0.25)
-    env = TimeLimit(env, max_episode_steps=4500)
-    return env
-
-
-def wrap_deemind_retro(env):
     env = WarpFrame(env)
     env = ClipRewardEnv(env)
     env = FrameStack(env, 4)
@@ -58,23 +33,19 @@ def wrap_deemind_retro(env):
     return env
 
 
-def create_env():
-    env = retro.make(game='SuperMarioWorld-Snes')
-    env = MarioWorldDiscretizer(env)
-    return env
-
-
-def create_dqn_env():
-    env = retro.make(game='SuperMarioWorld-Snes')
-    env = MarioWorldDiscretizer(env)
+def create_discrete_env(state):
+    env = MarioWorldDiscretizer(retro.make('SuperMarioWorld-Snes', state))
+    env = StochasticFrameSkip(env, n=4, stickprob=0.25)
+    env = TimeLimit(env, max_episode_steps=4500)
     env = WarpFrame(env)
     env = ClipRewardEnv(env)
     env = FrameStack(env, 4)
+    env = ScaledFloatFrame(env)
     return env
 
 
 def test_random_agent():
-    env = create_env()
+    env = create_env('YoshiIsland2')
     obs = env.reset()
     while True:
         action = env.action_space.sample()
@@ -91,6 +62,10 @@ def train_DQN():
     model = DQN('MlpPolicy', env, policy_kwargs=policy_kwargs, verbose=1)
     model.learn(total_timesteps=10_000, log_interval=4)
     model.save('models/qrdqn_mario')
+
+
+def test_DQN():
+    pass
 
 
 def train_PPO():
@@ -158,14 +133,15 @@ def print_env_info(env):
 
 
 def main():
-    env = create_dqn_env()
-    model = DQN(policy='MlpPolicy', env=env, batch_size=4, tensorboard_log='./tensorboard/')
-    model.learn(total_timesteps=25_000)
-    model.save('models/dqn_mario')
-    #env = make_retro_disc()
-    #env = wrap_deemind_retro(env)
+    pass
+    # TRAIN DQN
+    #env = create_discrete_env('YoshiIsland2')
+    #model = DQN(policy='MlpPolicy', env=env, batch_size=4, tensorboard_log='./tensorboard/')
+    #model.learn(total_timesteps=25_000)
+    #model.save('models/dqn_mario')
 
-    # TRAIN
+    # TRAIN PPO
+    #env = create_env('YoshiIsland2')
     #model = PPO(policy='MlpPolicy',
     #            env=env,
     #            learning_rate=lambda f : f * 2.5e-4,
