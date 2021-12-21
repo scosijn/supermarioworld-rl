@@ -17,16 +17,18 @@ from callback import SaveBestCallback, ProgressBarManager, VideoRecorderCallback
 from video import record_video, show_video
 from discretizer import MarioWorldDiscretizer
 from monitor import MarioWorldMonitor
-from wrapper import StochasticFrameSkip, TimeLimit, WarpFrame, ClipRewardEnv, FrameStack, ScaledFloatFrame
+from wrapper import StochasticFrameSkip, WarpFrame, ClipRewardEnv, FrameStack, ScaledFloatFrame
 from stable_baselines3.common.callbacks import CallbackList
 from stable_baselines3.common.callbacks import EvalCallback
 from stable_baselines3.common.env_checker import check_env
+from gym.wrappers import TimeLimit
 
 
 def create_env(state):
     env = retro.make('SuperMarioWorld-Snes', state)
     env = StochasticFrameSkip(env, n=4, stickprob=0.25)
-    env = TimeLimit(env, max_episode_steps=4500)
+    # YoshiIsland2 max steps = 16100
+    env = TimeLimit(env, max_episode_steps=5000)
     env = WarpFrame(env)
     env = ClipRewardEnv(env)
     env = FrameStack(env, 4)
@@ -37,7 +39,7 @@ def create_env(state):
 def create_discrete_env(state):
     env = MarioWorldDiscretizer(retro.make('SuperMarioWorld-Snes', state))
     env = StochasticFrameSkip(env, n=4, stickprob=0.25)
-    env = TimeLimit(env, max_episode_steps=4500)
+    env = TimeLimit(env, max_episode_steps=5000)
     env = WarpFrame(env)
     env = ClipRewardEnv(env)
     env = FrameStack(env, 4)
@@ -137,13 +139,16 @@ def main():
         record=False,
         obs_type=retro.Observations.RAM,
     ))
+    env = TimeLimit(env, max_episode_steps=10_000)
     obs = env.reset()
-    while True:
+    steps = 0
+    done = False
+    while not done:
         action = env.action_space.sample()
         obs, reward, done, info = env.step(action)
+        steps += 1
         env.render()
-        if done:
-            obs = env.reset()
+    print(steps)
     env.close()
 
     return
