@@ -4,6 +4,7 @@ Based on https://github.com/openai/retro/blob/master/retro/examples/discretizer.
 """
 
 import gym
+import retro
 import itertools
 import numpy as np
 from gym import spaces
@@ -28,6 +29,7 @@ class Discretizer(gym.ActionWrapper):
                 arr[buttons.index(button)] = True
             self._decode_discrete_action.append(arr)
         self.action_space = spaces.Discrete(len(self._decode_discrete_action))
+        self.use_restricted_actions = retro.Actions.DISCRETE
 
     def action(self, act):
         return self._decode_discrete_action[act].copy()

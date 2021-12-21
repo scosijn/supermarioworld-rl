@@ -1,0 +1,32 @@
+{
+  "info": {
+    "x": {
+      "address": 148,
+      "type": "<u2"
+    },
+    "y": {
+      "address": 150,
+      "type": "<u2"
+    },
+    "checkpoint": {
+      "address": 5070,
+      "type": "|i1"
+    },
+    "endoflevel": {
+      "address": 8259846,
+      "type": "|i1"
+    },
+    "lives": {
+      "address": 8261054,
+      "type": "|i1"
+    },
+    "powerups": {
+      "address": 25,
+      "type": "|i1"
+    },
+    "score": {
+      "address": 8261428,
+      "type": "<u4"
+    }
+  }
+}

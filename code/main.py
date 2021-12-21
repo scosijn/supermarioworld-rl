@@ -4,6 +4,7 @@ import time
 import os
 import numpy as np
 import matplotlib.pyplot as plt
+from retro.enums import Observations
 from stable_baselines3.common.logger import Video
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.vec_env.dummy_vec_env import DummyVecEnv
@@ -56,8 +57,7 @@ def test_random_agent():
     env.close()
 
 
-def train_DQN():
-    env = MarioWorldDiscretizer(retro.make(game='SuperMarioWorld-Snes'))
+def train_DQN(env):
     policy_kwargs = dict(n_quantiles=50)
     model = DQN('MlpPolicy', env, policy_kwargs=policy_kwargs, verbose=1)
     model.learn(total_timesteps=10_000, log_interval=4)
@@ -124,16 +124,48 @@ def callback_chain_test():
 
 def print_env_info(env):
     print('action_space: {}'.format(env.action_space))
-    print('num_buttons: {}'.format(env.num_buttons))
-    print('buttons: {}'.format(env.buttons))
-    print('button_combos: {}'.format(env.button_combos))
-    print('use_restricted_actions: {}'.format(env.use_restricted_actions))
     print('observation_space: {}'.format(env.observation_space.shape))
     print('reward_range: {}'.format(env.reward_range))
 
 
 def main():
-    pass
+    env = MarioWorldDiscretizer(retro.RetroEnv(
+        game='SuperMarioWorld-Snes',
+        state='YoshiIsland2',
+        info='./data/data.json',
+        scenario='./data/scenario.json',
+        record=False,
+        obs_type=retro.Observations.RAM,
+    ))
+    obs = env.reset()
+    while True:
+        action = env.action_space.sample()
+        obs, reward, done, info = env.step(action)
+        env.render()
+        if done:
+            obs = env.reset()
+    env.close()
+
+    return
+    env = retro.make('SuperMarioWorld-Snes', 'YoshiIsland2')
+    obs = env.reset()
+    A      = [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0] # spin
+    B      = [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] # jump
+    X      = [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0] # run
+    UP     = [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0]
+    DOWN   = [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0]
+    LEFT   = [0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0]
+    RIGHT  = [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0]
+    episode_length = 0
+    done = False
+    while not done:
+        #action = env.action_space.sample()
+        _, _, done, _ = env.step([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+        episode_length += 1
+        env.render()
+    print(episode_length)
+    env.close()
+
     # TRAIN DQN
     #env = create_discrete_env('YoshiIsland2')
     #model = DQN(policy='MlpPolicy', env=env, batch_size=4, tensorboard_log='./tensorboard/')
