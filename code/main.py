@@ -24,15 +24,26 @@ from stable_baselines3.common.env_checker import check_env
 from gym.wrappers import TimeLimit
 
 
+def wrap_env(env):
+    env = StochasticFrameSkip(env, n=4, stickprob=0.25)
+    # YoshiIsland2 max steps = 16100
+    #env = TimeLimit(env, max_episode_steps=5000)
+    env = WarpFrame(env)
+    #env = ClipRewardEnv(env)
+    env = FrameStack(env, 4)
+    #env = ScaledFloatFrame(env)
+    return env
+
+
 def create_env(state):
     env = retro.make('SuperMarioWorld-Snes', state)
     env = StochasticFrameSkip(env, n=4, stickprob=0.25)
     # YoshiIsland2 max steps = 16100
-    env = TimeLimit(env, max_episode_steps=5000)
+    #env = TimeLimit(env, max_episode_steps=5000)
     env = WarpFrame(env)
-    env = ClipRewardEnv(env)
+    #env = ClipRewardEnv(env)
     env = FrameStack(env, 4)
-    env = ScaledFloatFrame(env)
+    #env = ScaledFloatFrame(env)
     return env
 
 
@@ -70,11 +81,20 @@ def test_DQN():
     pass
 
 
-def train_PPO():
-    env = retro.make(game='SuperMarioWorld-Snes', state='YoshiIsland2')
-    model = PPO('MlpPolicy', env, verbose=1, tensorboard_log='./ppo_mario_tensorboard/')
-    model.learn(total_timesteps=500)
-    model.save('models/ppo_mario')
+def train_PPO(env, total_timesteps, model_name):
+    model = PPO(policy='MlpPolicy',
+                env=env,
+                learning_rate=lambda f : f * 2.5e-4,
+                n_steps=128,
+                batch_size=4,
+                n_epochs=4,
+                ent_coef=.01,
+                clip_range=0.1,
+                gamma=0.99,
+                gae_lambda=0.95,
+                tensorboard_log='./tensorboard/')
+    model.learn(total_timesteps=total_timesteps)
+    model.save('./models/{}'.format(model_name))
 
 
 def test_PPO(model_name):
@@ -136,62 +156,28 @@ def main():
         state='YoshiIsland2',
         info='./data/data.json',
         scenario='./data/scenario.json',
-        record=False,
-        obs_type=retro.Observations.RAM,
     ))
-    env = TimeLimit(env, max_episode_steps=10_000)
-    obs = env.reset()
-    steps = 0
-    done = False
-    while not done:
-        action = env.action_space.sample()
-        obs, reward, done, info = env.step(action)
-        steps += 1
-        env.render()
-    print(steps)
+    train_PPO(env, 300_000, 'mario-ppo-nowrap')
     env.close()
 
+    env = MarioWorldDiscretizer(retro.RetroEnv(
+        game='SuperMarioWorld-Snes',
+        state='YoshiIsland2',
+        info='./data/data.json',
+        scenario='./data/scenario.json',
+    ))
+    env = wrap_env(env)
+    train_PPO(env, 300_000, 'mario-ppo')
+    env.close()
     return
-    env = retro.make('SuperMarioWorld-Snes', 'YoshiIsland2')
-    obs = env.reset()
-    A      = [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0] # spin
-    B      = [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] # jump
-    X      = [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0] # run
-    UP     = [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0]
-    DOWN   = [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0]
-    LEFT   = [0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0]
-    RIGHT  = [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0]
-    episode_length = 0
-    done = False
-    while not done:
-        #action = env.action_space.sample()
-        _, _, done, _ = env.step([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
-        episode_length += 1
-        env.render()
-    print(episode_length)
-    env.close()
 
-    # TRAIN DQN
-    #env = create_discrete_env('YoshiIsland2')
-    #model = DQN(policy='MlpPolicy', env=env, batch_size=4, tensorboard_log='./tensorboard/')
-    #model.learn(total_timesteps=25_000)
-    #model.save('models/dqn_mario')
-
-    # TRAIN PPO
-    #env = create_env('YoshiIsland2')
-    #model = PPO(policy='MlpPolicy',
-    #            env=env,
-    #            learning_rate=lambda f : f * 2.5e-4,
-    #            n_steps=128,
-    #            batch_size=4,
-    #            n_epochs=4,
-    #            ent_coef=.01,
-    #            clip_range=0.1,
-    #            gamma=0.99,
-    #            gae_lambda=0.95,
-    #            tensorboard_log='./tensorboard/')
-    #model.learn(total_timesteps=25_000)
-    #model.save('models/ppo_mario_disc')
+    #A      = [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0] # spin
+    #B      = [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] # jump
+    #X      = [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0] # run
+    #UP     = [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0]
+    #DOWN   = [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0]
+    #LEFT   = [0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0]
+    #RIGHT  = [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0]
 
     # TEST
     #model = PPO.load('./models/ppo_mario_disc')
