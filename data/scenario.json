@@ -19,10 +19,10 @@
   },
   "reward": {
     "variables": {
-      "x": {
+      "x_pos": {
         "reward": 1.0
       },
-      "y": {
+      "y_pos": {
         "penalty": -1.0
       },
       "checkpoint": {

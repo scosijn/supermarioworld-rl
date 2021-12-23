@@ -1,10 +1,10 @@
 {
   "info": {
-    "x": {
+    "x_pos": {
       "address": 148,
       "type": "<u2"
     },
-    "y": {
+    "y_pos": {
       "address": 150,
       "type": "<u2"
     },
