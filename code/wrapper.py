@@ -3,6 +3,9 @@ import cv2
 import numpy as np
 from collections import deque
 from gym import spaces
+from gym.wrappers import TimeLimit
+from stable_baselines3.common.vec_env import VecFrameStack
+from stable_baselines3.common.env_util import make_atari_env
 
 
 class StochasticFrameSkip(gym.Wrapper):
@@ -181,3 +184,12 @@ class ScaledFloatFrame(gym.ObservationWrapper):
         # careful! This undoes the memory optimization, use
         # with smaller replay buffers only.
         return np.array(observation).astype(np.float32) / 255.0
+
+def wrap_env(env):
+    env = StochasticFrameSkip(env, n=4, stickprob=0.25)
+    #env = TimeLimit(env, max_episode_steps=4000)
+    env = WarpFrame(env)
+    #env = ClipReward(env)
+    env = FrameStack(env, 4)
+    #env = ScaledFloatFrame(env)
+    return env

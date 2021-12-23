@@ -21,52 +21,48 @@ from wrapper import StochasticFrameSkip, WarpFrame, ClipRewardEnv, FrameStack, S
 from stable_baselines3.common.callbacks import CallbackList
 from stable_baselines3.common.callbacks import EvalCallback
 from stable_baselines3.common.env_checker import check_env
-from gym.wrappers import TimeLimit
-
-
-def wrap_env(env):
-    env = StochasticFrameSkip(env, n=4, stickprob=0.25)
-    # YoshiIsland2 max steps = 16100
-    #env = TimeLimit(env, max_episode_steps=5000)
-    env = WarpFrame(env)
-    #env = ClipRewardEnv(env)
-    env = FrameStack(env, 4)
-    #env = ScaledFloatFrame(env)
-    return env
+from wrapper import wrap_env
+#A      = [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0] # spin
+#B      = [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] # jump
+#X      = [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0] # run
+#UP     = [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0]
+#DOWN   = [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0]
+#LEFT   = [0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0]
+#RIGHT  = [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0]
 
 
 def create_env(state):
-    env = retro.make('SuperMarioWorld-Snes', state)
-    env = StochasticFrameSkip(env, n=4, stickprob=0.25)
-    # YoshiIsland2 max steps = 16100
-    #env = TimeLimit(env, max_episode_steps=5000)
-    env = WarpFrame(env)
-    #env = ClipRewardEnv(env)
-    env = FrameStack(env, 4)
-    #env = ScaledFloatFrame(env)
+    env = retro.RetroEnv(
+        game='SuperMarioWorld-Snes',
+        state=state,
+        info='./data/data.json',
+        scenario='./data/scenario.json',
+    )
+    env = MarioWorldDiscretizer(env)
+    env = wrap_env(env)
     return env
 
 
-def create_discrete_env(state):
-    env = MarioWorldDiscretizer(retro.make('SuperMarioWorld-Snes', state))
-    env = StochasticFrameSkip(env, n=4, stickprob=0.25)
-    env = TimeLimit(env, max_episode_steps=5000)
-    env = WarpFrame(env)
-    env = ClipRewardEnv(env)
-    env = FrameStack(env, 4)
-    env = ScaledFloatFrame(env)
-    return env
+def print_env_info(env):
+    print('system: {}'.format(env.system))
+    print('gamename: {}'.format(env.gamename))
+    print('statename: {}'.format(env.statename))
+    print('buttons: {}'.format(env.buttons))
+    print('action_space: {}'.format(env.action_space))
+    print('observation_space: {}'.format(env.observation_space.shape))
+    print('reward_range: {}'.format(env.reward_range))
 
 
-def test_random_agent():
-    env = create_env('YoshiIsland2')
-    obs = env.reset()
-    while True:
+def test_random_agent(env):
+    env.reset()
+    done = False
+    while not done:
         action = env.action_space.sample()
-        obs, reward, done, info = env.step(action)
+        _, _, done, _ = env.step(action)
         env.render()
+        time.sleep(0.01)
         if done:
-            obs = env.reset()
+            env.reset()
     env.close()
 
 
@@ -77,8 +73,8 @@ def train_DQN(env):
     model.save('models/qrdqn_mario')
 
 
-def test_DQN():
-    pass
+def test_DQN(model_name):
+    return
 
 
 def train_PPO(env, total_timesteps, model_name):
@@ -98,13 +94,18 @@ def train_PPO(env, total_timesteps, model_name):
 
 
 def test_PPO(model_name):
-    model = PPO.load('models/' + model_name)
+    model = PPO.load('./models/{}'.format(model_name))
     env = model.get_env()
     obs = env.reset()
-    while True:
-        action, _states = model.predict(obs)
-        obs, reward, done, info = env.step(action)
+    done = False
+    while not done:
+        action, _ = model.predict(obs)
+        obs, _, done, _ = env.step(action)
         env.render()
+        time.sleep(0.01)
+        if done:
+            obs = env.reset()
+    env.close()
 
 
 def evaluate(model, env, num_episodes=100):
@@ -144,51 +145,20 @@ def callback_chain_test():
         model.learn(n_steps, callback=[progress_callback, eval_callback])
 
 
-def print_env_info(env):
-    print('action_space: {}'.format(env.action_space))
-    print('observation_space: {}'.format(env.observation_space.shape))
-    print('reward_range: {}'.format(env.reward_range))
-
-
 def main():
-    env = MarioWorldDiscretizer(retro.RetroEnv(
-        game='SuperMarioWorld-Snes',
-        state='YoshiIsland2',
-        info='./data/data.json',
-        scenario='./data/scenario.json',
-    ))
-    train_PPO(env, 300_000, 'mario-ppo-nowrap')
-    env.close()
-
-    env = MarioWorldDiscretizer(retro.RetroEnv(
-        game='SuperMarioWorld-Snes',
-        state='YoshiIsland2',
-        info='./data/data.json',
-        scenario='./data/scenario.json',
-    ))
-    env = wrap_env(env)
-    train_PPO(env, 300_000, 'mario-ppo')
-    env.close()
-    return
-
-    #A      = [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0] # spin
-    #B      = [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] # jump
-    #X      = [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0] # run
-    #UP     = [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0]
-    #DOWN   = [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0]
-    #LEFT   = [0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0]
-    #RIGHT  = [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0]
-
-    # TEST
-    #model = PPO.load('./models/ppo_mario_disc')
-    #obs = env.reset()
-    #while True:
-    #    time.sleep(0.0075)
-    #    action, _states = model.predict(obs)
-    #    obs, reward, done, info = env.step(action)
-    #    env.render()
-    #    if done:
-    #        obs = env.reset()
+    env = create_env('YoshiIsland2')
+    model = PPO(policy='CnnPolicy',
+                env=env,
+                learning_rate=lambda f : f * 2.5e-4,
+                n_steps=128,
+                batch_size=4,
+                n_epochs=4,
+                ent_coef=.01,
+                clip_range=0.1,
+                gamma=0.99,
+                gae_lambda=0.95)
+    model.learn(total_timesteps=1000)
+    #test_random_agent(env)
 
 
 if __name__ == '__main__':
