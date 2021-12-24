@@ -39,7 +39,6 @@ def create_env(state):
         scenario='./data/scenario.json',
     )
     env = MarioWorldDiscretizer(env)
-    env = wrap_env(env)
     return env
 
 
@@ -97,11 +96,10 @@ def test_PPO(env, model_name):
     model = PPO.load('./models/{}'.format(model_name))
     obs = env.reset()
     done = False
-    while not done:
+    while True:
         action, _ = model.predict(obs)
         obs, _, done, _ = env.step(action)
         env.render()
-        time.sleep(0.01)
         if done:
             obs = env.reset()
     env.close()
@@ -145,7 +143,8 @@ def callback_chain_test():
 
 
 def main():
-    env = create_env('YoshiIsland2')
+    #env = wrap_env(create_env('YoshiIsland2'))
+    env = create_env('DonutPlains1')
     test_PPO(env, 'mario-ppo-nowrap')
     #model = PPO(policy='CnnPolicy',
     #            env=env,

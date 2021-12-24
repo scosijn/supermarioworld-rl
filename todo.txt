@@ -1,0 +1,16 @@
+REWARD
+remove reward for y_pos
+add reward for powerups
+add penalty for running into wall
+add reward for speed
+
+CALLBACK
+save best eval
+save playback
+
+WRAPPERS
+stochastic frame stick
+warp frame
+clip reward
+frame stack / lazy frame
+normalize color?
