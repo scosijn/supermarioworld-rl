@@ -93,9 +93,8 @@ def train_PPO(env, total_timesteps, model_name):
     model.save('./models/{}'.format(model_name))
 
 
-def test_PPO(model_name):
+def test_PPO(env, model_name):
     model = PPO.load('./models/{}'.format(model_name))
-    env = model.get_env()
     obs = env.reset()
     done = False
     while not done:
@@ -147,17 +146,18 @@ def callback_chain_test():
 
 def main():
     env = create_env('YoshiIsland2')
-    model = PPO(policy='CnnPolicy',
-                env=env,
-                learning_rate=lambda f : f * 2.5e-4,
-                n_steps=128,
-                batch_size=4,
-                n_epochs=4,
-                ent_coef=.01,
-                clip_range=0.1,
-                gamma=0.99,
-                gae_lambda=0.95)
-    model.learn(total_timesteps=1000)
+    test_PPO(env, 'mario-ppo-nowrap')
+    #model = PPO(policy='CnnPolicy',
+    #            env=env,
+    #            learning_rate=lambda f : f * 2.5e-4,
+    #            n_steps=128,
+    #            batch_size=4,
+    #            n_epochs=4,
+    #            ent_coef=.01,
+    #            clip_range=0.1,
+    #            gamma=0.99,
+    #            gae_lambda=0.95)
+    #model.learn(total_timesteps=1000)
     #test_random_agent(env)
 
 
