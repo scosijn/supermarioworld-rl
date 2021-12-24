@@ -77,7 +77,7 @@ def test_DQN(model_name):
 
 
 def train_PPO(env, total_timesteps, model_name):
-    model = PPO(policy='MlpPolicy',
+    model = PPO(policy='CnnPolicy',
                 env=env,
                 learning_rate=lambda f : f * 2.5e-4,
                 n_steps=128,
@@ -95,14 +95,12 @@ def train_PPO(env, total_timesteps, model_name):
 def test_PPO(env, model_name):
     model = PPO.load('./models/{}'.format(model_name))
     obs = env.reset()
-    done = False
     while True:
         action, _ = model.predict(obs)
         obs, _, done, _ = env.step(action)
         env.render()
         if done:
             obs = env.reset()
-    env.close()
 
 
 def evaluate(model, env, num_episodes=100):
@@ -144,20 +142,9 @@ def callback_chain_test():
 
 def main():
     #env = wrap_env(create_env('YoshiIsland2'))
-    env = create_env('DonutPlains1')
-    test_PPO(env, 'mario-ppo-nowrap')
-    #model = PPO(policy='CnnPolicy',
-    #            env=env,
-    #            learning_rate=lambda f : f * 2.5e-4,
-    #            n_steps=128,
-    #            batch_size=4,
-    #            n_epochs=4,
-    #            ent_coef=.01,
-    #            clip_range=0.1,
-    #            gamma=0.99,
-    #            gae_lambda=0.95)
-    #model.learn(total_timesteps=1000)
-    #test_random_agent(env)
+    env = WarpFrame(create_env('YoshiIsland2'))
+    test_PPO(env, 'mario-ppo')
+    #train_PPO(env, 1000, 'mario-ppo')
 
 
 if __name__ == '__main__':
