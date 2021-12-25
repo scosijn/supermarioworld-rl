@@ -1,27 +1,20 @@
 import gym
 import retro
 import time
-import os
 import numpy as np
-import matplotlib.pyplot as plt
-from retro.enums import Observations
-from stable_baselines3.common.logger import Video
-from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.vec_env.dummy_vec_env import DummyVecEnv
 from stable_baselines3.common.vec_env.subproc_vec_env import SubprocVecEnv
 from stable_baselines3 import DQN
 from stable_baselines3 import PPO
 from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.env_util import make_vec_env
-from callback import SaveBestCallback, ProgressBarManager, VideoRecorderCallback
-from video import record_video, show_video
-from discretizer import MarioWorldDiscretizer
-from monitor import MarioWorldMonitor
-from wrapper import StochasticFrameSkip, WarpFrame, ClipRewardEnv, FrameStack, ScaledFloatFrame
 from stable_baselines3.common.callbacks import CallbackList
 from stable_baselines3.common.callbacks import EvalCallback
 from stable_baselines3.common.env_checker import check_env
-from wrapper import wrap_env
+from discretizer import MarioWorldDiscretizer
+from monitor import MarioWorldMonitor
+from wrappers import wrap_env
+from callbacks import ProgressBar
 #A      = [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0] # spin
 #B      = [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] # jump
 #X      = [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0] # run
@@ -31,14 +24,20 @@ from wrapper import wrap_env
 #RIGHT  = [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0]
 
 
-def create_env(state):
+def create_env(state, is_eval=False):
     env = retro.RetroEnv(
         game='SuperMarioWorld-Snes',
         state=state,
         info='./data/data.json',
         scenario='./data/scenario.json',
     )
+    # record the agent's actions if evaluating
+    if is_eval:
+        env.auto_record('./playback/')
+    # convert to discrete action space
     env = MarioWorldDiscretizer(env)
+    # check if env is correct according to gym API
+    check_env(env)
     return env
 
 
@@ -54,29 +53,41 @@ def print_env_info(env):
 
 def test_random_agent(env):
     env.reset()
-    done = False
-    while not done:
-        action = env.action_space.sample()
-        _, _, done, _ = env.step(action)
+    while True:
+        _, _, done, _ = env.step(env.action_space.sample())
         env.render()
-        time.sleep(0.01)
         if done:
             env.reset()
-    env.close()
 
 
-def train_DQN(env):
+def train_model(model, total_timesteps, eval_env=None, eval_freq=10000):
+    eval_callback = None
+    if eval_env is not None:
+        eval_callback = EvalCallback(
+            eval_env,
+            eval_freq=eval_freq,
+            best_model_save_path='./logs/best_model',
+            log_path='./logs/results'
+        )
+    with ProgressBar(total_timesteps) as progress_callback:
+        callback = [progress_callback]
+        if eval_callback is not None:
+            callback.append(eval_callback)
+        model.learn(total_timesteps, callback=callback)
+
+
+def train_DQN(env, model_name, total_timesteps):
     policy_kwargs = dict(n_quantiles=50)
     model = DQN('MlpPolicy', env, policy_kwargs=policy_kwargs, verbose=1)
     model.learn(total_timesteps=10_000, log_interval=4)
     model.save('models/qrdqn_mario')
 
 
-def test_DQN(model_name):
+def test_DQN(env, model_name):
     return
 
 
-def train_PPO(env, total_timesteps, model_name):
+def train_PPO(env, model_name, total_timesteps):
     model = PPO(policy='CnnPolicy',
                 env=env,
                 learning_rate=lambda f : f * 2.5e-4,
@@ -103,48 +114,28 @@ def test_PPO(env, model_name):
             obs = env.reset()
 
 
-def evaluate(model, env, num_episodes=100):
-    """
-    Evaluate a RL agent
-    :param model: (BaseRLModel object) the RL Agent
-    :param num_episodes: (int) number of episodes to evaluate it
-    :return: (float) Mean reward for the last num_episodes
-    """
-    all_rewards = []
-    for i in range(num_episodes):
-        episode_rewards = []
-        done = False
-        obs = env.reset()
-        while not done:
-            action, _states = model.predict(obs)
-            obs, reward, done, info = env.step(action)
-            episode_rewards.append(reward)
-        all_rewards.append(sum(episode_rewards))
-    mean_reward = np.mean(all_rewards)
-    print("mean_reward:", mean_reward, "num_episodes:", num_episodes)
-    #evaluate(model, env, num_episodes=100)
-    #mean_reward, std_reward = evaluate_policy(model, env, n_eval_episodes=100)
-    #print(f"mean_reward: {mean_reward:.2f} +/- {std_reward:.2f}")
-    return mean_reward
-
-
-def callback_chain_test():
-    n_steps = 5000
-    env_id = 'CartPole-v1'
-    env = gym.make(env_id)
-    eval_env = gym.make(env_id)
-    eval_callback = EvalCallback(eval_env, best_model_save_path='./logs/best_model',
-                                 log_path='./logs/results', eval_freq=500)
-    model = PPO('MlpPolicy', env)
-    with ProgressBarManager(n_steps) as progress_callback:
-        model.learn(n_steps, callback=[progress_callback, eval_callback])
-
-
 def main():
-    #env = wrap_env(create_env('YoshiIsland2'))
-    env = WarpFrame(create_env('YoshiIsland2'))
-    test_PPO(env, 'mario-ppo')
-    #train_PPO(env, 1000, 'mario-ppo')
+    STATE = 'YoshiIsland2'
+    env = gym.make('CartPole-v1')
+    eval_env = gym.make('CartPole-v1')
+    model = PPO(policy='MlpPolicy',
+                env=env,
+                n_steps=32,
+                n_epochs=20,
+                batch_size=256,
+                ent_coef=0.0,
+                gae_lambda=0.8,
+                gamma=0.98,
+                learning_rate=lambda f : f * 0.001,
+                clip_range=lambda f : f * 0.2)
+    train_model(model, 20_000, eval_env)
+    obs = env.reset()
+    while True:
+        action, _ = model.predict(obs)
+        obs, _, done, _ = env.step(action)
+        env.render()
+        if done:
+            obs = env.reset()
 
 
 if __name__ == '__main__':
