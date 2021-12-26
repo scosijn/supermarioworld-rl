@@ -24,7 +24,7 @@ from callbacks import ProgressBar
 #RIGHT  = [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0]
 
 
-def create_env(state, is_eval=False):
+def create_env(state, record=False):
     env = retro.RetroEnv(
         game='SuperMarioWorld-Snes',
         state=state,
@@ -32,7 +32,7 @@ def create_env(state, is_eval=False):
         scenario='./data/scenario.json',
     )
     # record the agent's actions if evaluating
-    if is_eval:
+    if record:
         env.auto_record('./playback/')
     # convert to discrete action space
     env = MarioWorldDiscretizer(env)
@@ -65,7 +65,7 @@ def train_model(model, total_timesteps, eval_env=None, eval_freq=10000):
     if eval_env is not None:
         eval_callback = EvalCallback(
             eval_env,
-            eval_freq=eval_freq,
+            eval_freq=min(eval_freq, total_timesteps),
             best_model_save_path='./logs/best_model',
             log_path='./logs/results'
         )
@@ -115,27 +115,20 @@ def test_PPO(env, model_name):
 
 
 def main():
-    STATE = 'YoshiIsland2'
-    env = gym.make('CartPole-v1')
-    eval_env = gym.make('CartPole-v1')
-    model = PPO(policy='MlpPolicy',
-                env=env,
-                n_steps=32,
-                n_epochs=20,
-                batch_size=256,
-                ent_coef=0.0,
-                gae_lambda=0.8,
-                gamma=0.98,
-                learning_rate=lambda f : f * 0.001,
-                clip_range=lambda f : f * 0.2)
-    train_model(model, 20_000, eval_env)
-    obs = env.reset()
-    while True:
-        action, _ = model.predict(obs)
-        obs, _, done, _ = env.step(action)
-        env.render()
-        if done:
-            obs = env.reset()
+    env = retro.RetroEnv('SuperMarioWorld-Snes', 'YoshiIsland2', record=True)
+    env = MarioWorldDiscretizer(env)
+    model = PPO('CnnPolicy', env)
+    model.learn(10)
+    print('done')
+    #env = retro.RetroEnv(
+    #    game='SuperMarioWorld-Snes',
+    #    state=STATE,
+    #    info='./data/data.json',
+    #    #scenario='./data/scenario.json',
+    #)
+    #env.auto_record('./playback/')
+    #model = PPO(policy='CnnPolicy', env=env)
+    #model.learn(1000)
 
 
 if __name__ == '__main__':
