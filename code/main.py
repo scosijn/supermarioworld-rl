@@ -15,6 +15,7 @@ from discretizer import MarioWorldDiscretizer
 from monitor import MarioWorldMonitor
 from wrappers import wrap_env
 from callbacks import ProgressBar
+from recording import playback
 #A      = [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0] # spin
 #B      = [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] # jump
 #X      = [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0] # run
@@ -115,11 +116,14 @@ def test_PPO(env, model_name):
 
 
 def main():
-    env = retro.RetroEnv('SuperMarioWorld-Snes', 'YoshiIsland2', record=True)
-    env = MarioWorldDiscretizer(env)
-    model = PPO('CnnPolicy', env)
-    model.learn(10)
-    print('done')
+    playback('./SuperMarioWorld-Snes-YoshiIsland2-000000.bk2')
+
+    #env = retro.RetroEnv('SuperMarioWorld-Snes', 'YoshiIsland2', record=True)
+    #env = MarioWorldDiscretizer(env)
+    #model = PPO('CnnPolicy', env)
+    #model.learn(10)
+    #print('done')
+
     #env = retro.RetroEnv(
     #    game='SuperMarioWorld-Snes',
     #    state=STATE,
