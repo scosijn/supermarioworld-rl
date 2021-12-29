@@ -1,20 +1,13 @@
-import gym
+import os
 import retro
-import time
 import numpy as np
-from stable_baselines3.common.vec_env.dummy_vec_env import DummyVecEnv
-from stable_baselines3.common.vec_env.subproc_vec_env import SubprocVecEnv
 from stable_baselines3 import DQN
 from stable_baselines3 import PPO
-from stable_baselines3.common.evaluation import evaluate_policy
-from stable_baselines3.common.env_util import make_vec_env
-from stable_baselines3.common.callbacks import CallbackList
-from stable_baselines3.common.callbacks import EvalCallback
 from stable_baselines3.common.env_checker import check_env
 from discretizer import MarioWorldDiscretizer
-from monitor import MarioWorldMonitor
 from wrappers import wrap_env
-from callbacks import ProgressBar
+from stable_baselines3.common.callbacks import EvalCallback
+#from callbacks import ProgressBar, EvalCallback
 from recording import playback
 #A      = [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0] # spin
 #B      = [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] # jump
@@ -25,18 +18,16 @@ from recording import playback
 #RIGHT  = [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0]
 
 
-def create_env(state, record=False):
+def create_env(state):
     env = retro.RetroEnv(
         game='SuperMarioWorld-Snes',
         state=state,
         info='./data/data.json',
         scenario='./data/scenario.json',
     )
-    # record the agent's actions if evaluating
-    if record:
-        env.auto_record('./playback/')
-    # convert to discrete action space
+    # convert to discrete action space and apply wrappers
     env = MarioWorldDiscretizer(env)
+    env = wrap_env(env)
     # check if env is correct according to gym API
     check_env(env)
     return env
@@ -61,20 +52,28 @@ def test_random_agent(env):
             env.reset()
 
 
-def train_model(model, total_timesteps, eval_env=None, eval_freq=10000):
+def train_model(model, total_timesteps, eval_env=None, eval_freq=10000, n_eval_episodes=5):
+    eval_freq = min(eval_freq, total_timesteps-1)
     eval_callback = None
     if eval_env is not None:
-        eval_callback = EvalCallback(
-            eval_env,
-            eval_freq=min(eval_freq, total_timesteps),
-            best_model_save_path='./logs/best_model',
-            log_path='./logs/results'
-        )
-    with ProgressBar(total_timesteps) as progress_callback:
-        callback = [progress_callback]
-        if eval_callback is not None:
-            callback.append(eval_callback)
-        model.learn(total_timesteps, callback=callback)
+        eval_callback = EvalCallback(eval_env,
+                                     n_eval_episodes=n_eval_episodes,
+                                     eval_freq=eval_freq,
+                                     log_path='./logs/results/',
+                                     best_model_save_path='./logs/best_model/')
+        #eval_callback = EvalCallback(
+        #    eval_env,
+        #    eval_freq=eval_freq,
+        #    n_eval_episodes=n_eval_episodes,
+        #    record_path='./playback/',
+        #    model_path='./logs/best_model/',
+        #    log_path='./logs/results/'
+        #)
+    #with ProgressBar(total_timesteps) as progress_callback:
+    #    callback = [progress_callback]
+    #    if eval_callback is not None:
+    #        callback.append(eval_callback)
+    model.learn(total_timesteps, callback=[eval_callback])
 
 
 def train_DQN(env, model_name, total_timesteps):
@@ -116,7 +115,19 @@ def test_PPO(env, model_name):
 
 
 def main():
-    playback('./SuperMarioWorld-Snes-YoshiIsland2-000000.bk2')
+    #playback('./playback/Airstriker-Genesis-Level1-000002.bk2')
+    env = retro.RetroEnv(
+        game='Airstriker-Genesis'
+    )
+    # convert to discrete action space and apply wrappers
+    wrap_env(env)
+    model = PPO('CnnPolicy', env)
+    train_model(model, 1000, env, n_eval_episodes=1)
+
+    results = np.load('./logs/results/evaluations.npz')
+    print(results['timesteps'])
+    print(results['results'])
+    print(results['ep_lengths'])
 
     #env = retro.RetroEnv('SuperMarioWorld-Snes', 'YoshiIsland2', record=True)
     #env = MarioWorldDiscretizer(env)

@@ -6,6 +6,7 @@ from gym import spaces
 from gym.wrappers import TimeLimit
 from stable_baselines3.common.vec_env import VecFrameStack
 from stable_baselines3.common.env_util import make_atari_env
+from stable_baselines3.common.monitor import Monitor
 
 
 class StochasticFrameSkip(gym.Wrapper):
@@ -186,10 +187,11 @@ class ScaledFloatFrame(gym.ObservationWrapper):
         return np.array(observation).astype(np.float32) / 255.0
 
 def wrap_env(env):
-    env = StochasticFrameSkip(env, n=4, stickprob=0.25)
+    #env = StochasticFrameSkip(env, n=4, stickprob=0.25)
     #env = TimeLimit(env, max_episode_steps=4000)
-    env = WarpFrame(env)
+    #env = WarpFrame(env)
     #env = ClipReward(env)
-    env = FrameStack(env, 4)
+    #env = FrameStack(env, 4)
     #env = ScaledFloatFrame(env)
+    env = Monitor(env)
     return env
