@@ -193,5 +193,4 @@ def wrap_env(env):
     #env = ClipReward(env)
     #env = FrameStack(env, 4)
     #env = ScaledFloatFrame(env)
-    env = Monitor(env)
     return env

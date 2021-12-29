@@ -1,4 +1,5 @@
 import retro
+import time
 
 
 def playback(path):

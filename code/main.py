@@ -1,14 +1,12 @@
-import os
 import retro
-import numpy as np
-from stable_baselines3 import DQN
+import os
 from stable_baselines3 import PPO
 from stable_baselines3.common.env_checker import check_env
-from discretizer import MarioWorldDiscretizer
 from wrappers import wrap_env
-from stable_baselines3.common.callbacks import EvalCallback
-#from callbacks import ProgressBar, EvalCallback
 from recording import playback
+from discretizer import MarioWorldDiscretizer
+from callbacks import ProgressBar, EvalCallback
+
 #A      = [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0] # spin
 #B      = [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] # jump
 #X      = [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0] # run
@@ -52,39 +50,20 @@ def test_random_agent(env):
             env.reset()
 
 
-def train_model(model, total_timesteps, eval_env=None, eval_freq=10000, n_eval_episodes=5):
-    eval_freq = min(eval_freq, total_timesteps-1)
-    eval_callback = None
-    if eval_env is not None:
-        eval_callback = EvalCallback(eval_env,
-                                     n_eval_episodes=n_eval_episodes,
-                                     eval_freq=eval_freq,
-                                     log_path='./logs/results/',
-                                     best_model_save_path='./logs/best_model/')
-        #eval_callback = EvalCallback(
-        #    eval_env,
-        #    eval_freq=eval_freq,
-        #    n_eval_episodes=n_eval_episodes,
-        #    record_path='./playback/',
-        #    model_path='./logs/best_model/',
-        #    log_path='./logs/results/'
-        #)
+def train_model(model, total_timesteps, eval_env, eval_freq, n_eval_episodes, verbose=1):
+    eval_callback = EvalCallback(
+        eval_env,
+        eval_freq,
+        n_eval_episodes,
+        model_path='./models/',
+        verbose=verbose
+    )
+    model.learn(total_timesteps, callback=eval_callback)
     #with ProgressBar(total_timesteps) as progress_callback:
     #    callback = [progress_callback]
     #    if eval_callback is not None:
     #        callback.append(eval_callback)
-    model.learn(total_timesteps, callback=[eval_callback])
-
-
-def train_DQN(env, model_name, total_timesteps):
-    policy_kwargs = dict(n_quantiles=50)
-    model = DQN('MlpPolicy', env, policy_kwargs=policy_kwargs, verbose=1)
-    model.learn(total_timesteps=10_000, log_interval=4)
-    model.save('models/qrdqn_mario')
-
-
-def test_DQN(env, model_name):
-    return
+    #model.learn(total_timesteps, callback=callback)
 
 
 def train_PPO(env, model_name, total_timesteps):
@@ -115,36 +94,19 @@ def test_PPO(env, model_name):
 
 
 def main():
-    #playback('./playback/Airstriker-Genesis-Level1-000002.bk2')
-    env = retro.RetroEnv(
-        game='Airstriker-Genesis'
-    )
-    # convert to discrete action space and apply wrappers
-    wrap_env(env)
+    GAME = 'Airstriker-Genesis'
+    env = retro.RetroEnv(GAME)
+    #eval_env.auto_record('./playback/')
+    os.makedirs('./playback/', exist_ok=True)
     model = PPO('CnnPolicy', env)
-    train_model(model, 1000, env, n_eval_episodes=1)
-
-    results = np.load('./logs/results/evaluations.npz')
-    print(results['timesteps'])
-    print(results['results'])
-    print(results['ep_lengths'])
-
-    #env = retro.RetroEnv('SuperMarioWorld-Snes', 'YoshiIsland2', record=True)
-    #env = MarioWorldDiscretizer(env)
-    #model = PPO('CnnPolicy', env)
-    #model.learn(10)
-    #print('done')
-
-    #env = retro.RetroEnv(
-    #    game='SuperMarioWorld-Snes',
-    #    state=STATE,
-    #    info='./data/data.json',
-    #    #scenario='./data/scenario.json',
-    #)
-    #env.auto_record('./playback/')
-    #model = PPO(policy='CnnPolicy', env=env)
-    #model.learn(1000)
+    train_model(model,
+                total_timesteps=500,
+                eval_env=env,
+                eval_freq=250,
+                n_eval_episodes=1)
 
 
 if __name__ == '__main__':
     main()
+    #playback('./playback/Airstriker-Genesis-Level1-000004.bk2')
+    #playback('./playback/Airstriker-Genesis-Level1-000005.bk2')
