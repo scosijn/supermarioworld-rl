@@ -7,12 +7,19 @@ from stable_baselines3.common.callbacks import EventCallback
 
 
 class SaveBestCallback(BaseCallback):
-    def __init__(self, eval_freq, record_path=None, log_path=None, verbose=1):
+    def __init__(
+        self,
+        eval_freq,
+        n_eval_episodes,
+        model_path=None,
+        record_path=None,
+        verbose=1
+    ):
         super(SaveBestCallback, self).__init__(verbose=verbose)
         self.eval_freq = eval_freq
+        self.n_eval_episodes = n_eval_episodes
+        self.model_path = model_path
         self.record_path = record_path
-        self.log_path = log_path
-        self.model_path = os.path.join(log_path, 'best_model')
         self.best_mean_reward = -np.inf
 
     def _init_callback(self):
