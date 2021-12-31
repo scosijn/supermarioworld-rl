@@ -5,7 +5,8 @@ from stable_baselines3.common.env_checker import check_env
 from wrappers import wrap_env
 from recording import playback
 from discretizer import MarioWorldDiscretizer
-from callbacks import ProgressBar, EvalCallback
+from callbacks import ProgressBar, CheckpointCallback
+from gym.wrappers.time_limit import TimeLimit
 
 #A      = [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0] # spin
 #B      = [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] # jump
@@ -50,23 +51,19 @@ def test_random_agent(env):
             env.reset()
 
 
-def train_model(model, total_timesteps, eval_env, eval_freq, n_eval_episodes, verbose=1):
-    eval_callback = EvalCallback(
-        eval_env,
-        eval_freq,
-        n_eval_episodes,
+def train_model(model, total_timesteps, save_freq, name_prefix='model', verbose=1):
+    checkpoint_callback = CheckpointCallback(
+        save_freq=save_freq,
+        name_prefix=name_prefix,
         model_path='./models/',
+        record_path='./playback/',
         verbose=verbose
     )
-    model.learn(total_timesteps, callback=eval_callback)
-    #with ProgressBar(total_timesteps) as progress_callback:
-    #    callback = [progress_callback]
-    #    if eval_callback is not None:
-    #        callback.append(eval_callback)
-    #model.learn(total_timesteps, callback=callback)
+    with ProgressBar(total_timesteps) as progress_callback:
+        model.learn(total_timesteps, callback=[checkpoint_callback, progress_callback])
 
 
-def train_PPO(env, model_name, total_timesteps):
+def create_PPO_model(env):
     model = PPO(policy='CnnPolicy',
                 env=env,
                 learning_rate=lambda f : f * 2.5e-4,
@@ -78,8 +75,7 @@ def train_PPO(env, model_name, total_timesteps):
                 gamma=0.99,
                 gae_lambda=0.95,
                 tensorboard_log='./tensorboard/')
-    model.learn(total_timesteps=total_timesteps)
-    model.save('./models/{}'.format(model_name))
+    return model
 
 
 def test_PPO(env, model_name):
@@ -94,19 +90,13 @@ def test_PPO(env, model_name):
 
 
 def main():
-    GAME = 'Airstriker-Genesis'
-    env = retro.RetroEnv(GAME)
-    #eval_env.auto_record('./playback/')
-    os.makedirs('./playback/', exist_ok=True)
-    model = PPO('CnnPolicy', env)
-    train_model(model,
-                total_timesteps=500,
-                eval_env=env,
-                eval_freq=250,
-                n_eval_episodes=1)
+    env = retro.RetroEnv(game='SuperMarioWorld-Snes')
+    env = MarioWorldDiscretizer(env)
+    #env = TimeLimit(env, 500)
+    model = create_PPO_model(env)
+    train_model(model, 50000, 25000)
 
 
 if __name__ == '__main__':
     main()
-    #playback('./playback/Airstriker-Genesis-Level1-000004.bk2')
-    #playback('./playback/Airstriker-Genesis-Level1-000005.bk2')
+    #playback('./playback/SuperMarioWorld-Snes-Start-000000.bk2')

@@ -4,13 +4,14 @@ from stable_baselines3.common.callbacks import BaseCallback
 
 
 class CheckpointCallback(BaseCallback):
-    def __init__(self, save_freq, model_path, record_path, prefix='model', verbose=1):
+    def __init__(self, save_freq, name_prefix, model_path, record_path, verbose=1):
         super(CheckpointCallback, self).__init__(verbose=verbose)
         self.save_freq = save_freq
+        self.name_prefix = name_prefix
         self.model_path = model_path
         self.record_path = record_path
-        self.prefix = prefix
-        self.save_on_next_ep = False
+        self.record_next_ep = False
+        self.recording = False
 
     def _init_callback(self):
         if self.model_path is not None:
@@ -19,9 +20,24 @@ class CheckpointCallback(BaseCallback):
             os.makedirs(self.record_path, exist_ok=True)
 
     def _on_step(self):
-        if self.n_calls % self.save_freq == 0:
-            # TODO
-            pass
+        if self.save_freq > 0 and self.n_calls % self.save_freq == 0:
+            self.record_next_ep = True
+            path = os.path.join(self.model_path, f'{self.name_prefix}_{self.num_timesteps}_steps')
+            self.model.save(path)
+            if self.verbose > 1:
+                print(f'saving model to {path}')
+        if self.recording:
+            env = self.model.get_env().envs[0]
+            if env.data.is_done():
+                env.stop_record()
+                self.recording = False
+        if self.record_next_ep:
+            env = self.model.get_env().envs[0]
+            if env.data.is_done():
+                env.auto_record(self.record_path)               
+                self.recording = True
+                self.record_next_ep = False
+        return True
 
 
 class ProgressBarCallback(BaseCallback):
