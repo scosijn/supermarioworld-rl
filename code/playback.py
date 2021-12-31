@@ -2,7 +2,7 @@ import retro
 import time
 
 
-def playback(path):
+def play_movie(path):
     recording = retro.Movie(path)
     recording.step()
     env = retro.make(

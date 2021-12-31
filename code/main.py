@@ -3,9 +3,9 @@ import os
 from stable_baselines3 import PPO
 from stable_baselines3.common.env_checker import check_env
 from wrappers import wrap_env
-from recording import playback
+from playback import play_movie
 from discretizer import MarioWorldDiscretizer
-from callbacks import ProgressBar, CheckpointCallback
+from callbacks import ProgressBar, SaveCheckpoint
 from gym.wrappers.time_limit import TimeLimit
 
 #A      = [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0] # spin
@@ -52,7 +52,7 @@ def test_random_agent(env):
 
 
 def train_model(model, total_timesteps, save_freq, name_prefix='model', verbose=1):
-    checkpoint_callback = CheckpointCallback(
+    checkpoint_callback = SaveCheckpoint(
         save_freq=save_freq,
         name_prefix=name_prefix,
         model_path='./models/',
