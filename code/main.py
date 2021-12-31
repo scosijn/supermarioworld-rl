@@ -3,18 +3,10 @@ import os
 from stable_baselines3 import PPO
 from stable_baselines3.common.env_checker import check_env
 from wrappers import wrap_env
-from playback import play_movie
 from discretizer import MarioWorldDiscretizer
 from callbacks import ProgressBar, SaveCheckpoint
+from recording import play_recording, play_all_recordings
 from gym.wrappers.time_limit import TimeLimit
-
-#A      = [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0] # spin
-#B      = [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] # jump
-#X      = [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0] # run
-#UP     = [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0]
-#DOWN   = [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0]
-#LEFT   = [0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0]
-#RIGHT  = [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0]
 
 
 def create_env(state):
@@ -24,10 +16,8 @@ def create_env(state):
         info='./data/data.json',
         scenario='./data/scenario.json',
     )
-    # convert to discrete action space and apply wrappers
     env = MarioWorldDiscretizer(env)
     env = wrap_env(env)
-    # check if env is correct according to gym API
     check_env(env)
     return env
 
@@ -92,11 +82,11 @@ def test_PPO(env, model_name):
 def main():
     env = retro.RetroEnv(game='SuperMarioWorld-Snes')
     env = MarioWorldDiscretizer(env)
-    #env = TimeLimit(env, 500)
+    env = TimeLimit(env, 500)
     model = create_PPO_model(env)
-    train_model(model, 50000, 25000)
+    train_model(model, 1500, 500)
 
 
 if __name__ == '__main__':
     main()
-    #playback('./playback/SuperMarioWorld-Snes-Start-000000.bk2')
+    #play_all_recordings('./playback/')
