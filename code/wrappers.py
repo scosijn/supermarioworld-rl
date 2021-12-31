@@ -10,7 +10,7 @@ from collections import deque
 class Discretizer(gym.ActionWrapper):
     """
     Wrap a gym environment and make it use discrete actions.
-    source: https://github.com/openai/retro/blob/master/retro/examples/discretizer.py
+    Source: https://github.com/openai/retro/blob/master/retro/examples/discretizer.py
 
     Args:
         combos: ordered list of lists of valid button combinations
@@ -37,7 +37,6 @@ class MarioWorldDiscretizer(Discretizer):
     """
     Convert actions for the SNES game Super Mario World to a discrete space.
     """
-
     def __init__(self, env):
         combos = []
         arrow_keys = [None, 'UP', 'DOWN', 'LEFT', 'RIGHT']
@@ -48,189 +47,152 @@ class MarioWorldDiscretizer(Discretizer):
         super().__init__(env, combos)
 
 
-class StochasticFrameSkip(gym.Wrapper):
-    def __init__(self, env, n, stickprob):
-        gym.Wrapper.__init__(self, env)
-        self.n = n
-        self.stickprob = stickprob
-        self.curac = None
-        self.rng = np.random.RandomState()
-        self.supports_want_render = hasattr(env, "supports_want_render")
-
-    def reset(self, **kwargs):
-        self.curac = None
-        return self.env.reset(**kwargs)
-
-    def step(self, ac):
-        done = False
-        totrew = 0
-        for i in range(self.n):
-            # First step after reset, use action
-            if self.curac is None:
-                self.curac = ac
-            # First substep, delay with probability=stickprob
-            elif i==0:
-                if self.rng.rand() > self.stickprob:
-                    self.curac = ac
-            # Second substep, new action definitely kicks in
-            elif i==1:
-                self.curac = ac
-            if self.supports_want_render and i<self.n-1:
-                ob, rew, done, info = self.env.step(self.curac, want_render=False)
-            else:
-                ob, rew, done, info = self.env.step(self.curac)
-            totrew += rew
-            if done: break
-        return ob, totrew, done, info
-
-    def seed(self, s):
-        self.rng.seed(s)
-
-
-class WarpFrame(gym.ObservationWrapper):
-    def __init__(self, env, width=84, height=84, grayscale=True, dict_space_key=None):
+class NoopResetEnv(gym.Wrapper):
+    def __init__(self, env, noop_max=30, noop_action=0):
         """
-        Warp frames to 84x84 as done in the Nature paper and later work.
-        If the environment uses dictionary observations, `dict_space_key` can be specified which indicates which
-        observation should be warped.
+        Sample initial states by taking random number of no-ops on reset.
+        No-op is assumed to be action 0.
         """
         super().__init__(env)
-        self._width = width
-        self._height = height
-        self._grayscale = grayscale
-        self._key = dict_space_key
-        if self._grayscale:
-            num_colors = 1
-        else:
-            num_colors = 3
+        self.noop_max = noop_max
+        self.noop_action = noop_action
 
-        new_space = gym.spaces.Box(
-            low=0,
-            high=255,
-            shape=(self._height, self._width, num_colors),
-            dtype=np.uint8,
-        )
-        if self._key is None:
-            original_space = self.observation_space
-            self.observation_space = new_space
-        else:
-            original_space = self.observation_space.spaces[self._key]
-            self.observation_space.spaces[self._key] = new_space
-        assert original_space.dtype == np.uint8 and len(original_space.shape) == 3
-
-    def observation(self, obs):
-        if self._key is None:
-            frame = obs
-        else:
-            frame = obs[self._key]
-
-        if self._grayscale:
-            frame = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
-        frame = cv2.resize(
-            frame, (self._width, self._height), interpolation=cv2.INTER_AREA
-        )
-        if self._grayscale:
-            frame = np.expand_dims(frame, -1)
-
-        if self._key is None:
-            obs = frame
-        else:
-            obs = obs.copy()
-            obs[self._key] = frame
+    def reset(self, **kwargs):
+        """
+        Do no-op action for a number of steps in [1, noop_max].
+        """
+        self.env.reset(**kwargs)
+        noops = self.unwrapped.np_random.randint(1, self.noop_max + 1)
+        obs = None
+        for _ in range(noops):
+            obs, _, done, _ = self.env.step(self.noop_action)
+            if done:
+                obs = self.env.reset(**kwargs)
         return obs
 
 
-class ClipRewardEnv(gym.RewardWrapper):
+class SkipFrame(gym.Wrapper):
+    """
+    Return only every n-th frame (frameskipping)
+    :param env: the environment
+    :param skip: number of frame skips
+    """
+    def __init__(self, env, frame_skips=4):
+        super().__init__(env)
+        self._frame_skips = frame_skips
+
+    def step(self, action):
+        """
+        Step the environment with the given action
+        Repeat action, sum reward, and max over last observations.
+        :param action: the action
+        :return: observation, reward, done, information
+        """
+        total_reward = 0.0
+        done = False
+        for _ in range(self._frame_skips):
+            obs, reward, done, info = self.env.step(action)
+            total_reward += reward
+            if done:
+                break
+        return obs, total_reward, done, info
+
+    def reset(self, **kwargs):
+        return self.env.reset(**kwargs)
+
+
+class EndEpisodeOnLifeLost(gym.Wrapper):
+    """
+    Make end-of-life == end-of-episode, but only reset on true game over.
+    Done by DeepMind for the DQN and co. since it helps value estimation.
+    :param env: the environment to wrap
+    """
     def __init__(self, env):
-        gym.RewardWrapper.__init__(self, env)
+        super().__init__(env)
+        self.max_lives = -1
+    
+    def step(self, action):
+        obs, reward, done, info = self.env.step(action)
+        lives = info['lives']
+        if self.max_lives == -1:
+            self.max_lives = lives
+        elif lives < self.max_lives:
+            done = True
+        return obs, reward, done, info
 
-    def reward(self, reward):
-        """Bin reward to {+1, 0, -1} by its sign."""
-        return np.sign(reward)
+    def reset(self, **kwargs):
+        obs = self.env.reset(**kwargs)
+        self.max_lives = -1
+        return obs
 
 
-class LazyFrames(object):
-    def __init__(self, frames):
-        """This object ensures that common frames between the observations are only stored once.
-        It exists purely to optimize memory usage which can be huge for DQN's 1M frames replay
-        buffers.
-        This object should only be converted to numpy array before being passed to the model.
-        You'd not believe how complex the previous solution was."""
-        self._frames = frames
-        self._out = None
+class WarpFrame(gym.ObservationWrapper):
+    """
+    Convert to grayscale and warp frames to 84x84 (default)
+    as done in the Nature paper and later work.
+    :param env: the environment
+    :param width:
+    :param height:
+    """
+    def __init__(self, env, screen_size=84, gray=True):
+        super().__init__(env)
+        self.screen_size = (screen_size, screen_size)
+        self.gray = gray
+        self.observation_space = spaces.Box(
+            low=0,
+            high=255,
+            shape=(screen_size, screen_size, 1),
+            dtype=np.uint8
+        )
 
-    def _force(self):
-        if self._out is None:
-            self._out = np.concatenate(self._frames, axis=-1)
-            self._frames = None
-        return self._out
-
-    def __array__(self, dtype=None):
-        out = self._force()
-        if dtype is not None:
-            out = out.astype(dtype)
-        return out
-
-    def __len__(self):
-        return len(self._force())
-
-    def __getitem__(self, i):
-        return self._force()[i]
-
-    def count(self):
-        frames = self._force()
-        return frames.shape[frames.ndim - 1]
-
-    def frame(self, i):
-        return self._force()[..., i]
+    def observation(self, frame):
+        """
+        returns the current observation from a frame
+        :param frame: environment frame
+        :return: the observation
+        """
+        if self.gray:
+            frame = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
+        frame = cv2.resize(frame, self.screen_size, interpolation=cv2.INTER_AREA)
+        if self.gray:
+            return frame[:, :, None]
+        return frame[:, :, :]
 
 
 class FrameStack(gym.Wrapper):
-    def __init__(self, env, k):
-        """Stack k last frames.
-        Returns lazy array, which is much more memory efficient.
-        See Also
-        --------
-        baselines.common.atari_wrappers.LazyFrames
-        """
-        gym.Wrapper.__init__(self, env)
-        self.k = k
-        self.frames = deque([], maxlen=k)
+    def __init__(self, env, frame_stack=4):
+        super().__init__(env)
+        self.frame_stack=frame_stack
+        self.frames = deque([], maxlen=frame_stack)
         shp = env.observation_space.shape
-        self.observation_space = spaces.Box(low=0, high=255, shape=(shp[:-1] + (shp[-1] * k,)), dtype=env.observation_space.dtype)
+        self.observation_space = spaces.Box(
+            low=0,
+            high=255,
+            shape=(shp[0], shp[1], shp[2] * frame_stack),
+            dtype=env.observation_space.dtype
+        )
 
-    def reset(self):
-        ob = self.env.reset()
-        for _ in range(self.k):
-            self.frames.append(ob)
-        return self._get_ob()
+    def reset(self, **kwargs):
+        obs = self.env.reset(**kwargs)
+        for _ in range(self.frame_stack):
+            self.frames.append(obs)
+        return self._get_obs()
 
     def step(self, action):
-        ob, reward, done, info = self.env.step(action)
-        self.frames.append(ob)
-        return self._get_ob(), reward, done, info
+        obs, reward, done, info = self.env.step(action)
+        self.frames.append(obs)
+        return self._get_obs(), reward, done, info
 
-    def _get_ob(self):
-        assert len(self.frames) == self.k
-        return LazyFrames(list(self.frames))
+    def _get_obs(self):
+        assert len(self.frames) == self.frame_stack
+        return np.concatenate(self.frames, axis=2)
 
-
-class ScaledFloatFrame(gym.ObservationWrapper):
-    def __init__(self, env):
-        gym.ObservationWrapper.__init__(self, env)
-        self.observation_space = gym.spaces.Box(low=0, high=1, shape=env.observation_space.shape, dtype=np.float32)
-
-    def observation(self, observation):
-        # careful! This undoes the memory optimization, use
-        # with smaller replay buffers only.
-        return np.array(observation).astype(np.float32) / 255.0
 
 def wrap_env(env):
     env = MarioWorldDiscretizer(env)
-    #env = StochasticFrameSkip(env, n=4, stickprob=0.25)
-    #env = TimeLimit(env, max_episode_steps=4000)
-    #env = WarpFrame(env)
-    #env = ClipReward(env)
-    #env = FrameStack(env, 4)
-    #env = ScaledFloatFrame(env)
+    env = NoopResetEnv(env)
+    env = SkipFrame(env)
+    env = EndEpisodeOnLifeLost(env)
+    env = WarpFrame(env)
+    env = FrameStack(env)
     return env

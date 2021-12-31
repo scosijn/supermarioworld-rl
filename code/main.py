@@ -1,12 +1,9 @@
 import retro
-import os
 from stable_baselines3 import PPO
 from stable_baselines3.common.env_checker import check_env
 from wrappers import wrap_env
-from discretizer import MarioWorldDiscretizer
 from callbacks import ProgressBar, SaveCheckpoint
 from recording import play_recording, play_all_recordings
-from gym.wrappers.time_limit import TimeLimit
 
 
 def create_env(state):
@@ -16,7 +13,6 @@ def create_env(state):
         info='./data/data.json',
         scenario='./data/scenario.json',
     )
-    env = MarioWorldDiscretizer(env)
     env = wrap_env(env)
     check_env(env)
     return env
@@ -80,13 +76,12 @@ def test_PPO(env, model_name):
 
 
 def main():
-    env = retro.RetroEnv(game='SuperMarioWorld-Snes')
-    env = MarioWorldDiscretizer(env)
-    env = TimeLimit(env, 500)
+    env = create_env('YoshiIsland2')
     model = create_PPO_model(env)
-    train_model(model, 1500, 500)
+    train_model(model, 20000, 10000, 'PPO_Mario')
+    print('done')
+    return
 
 
 if __name__ == '__main__':
     main()
-    #play_all_recordings('./playback/')
