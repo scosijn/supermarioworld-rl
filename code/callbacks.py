@@ -26,24 +26,24 @@ class SaveCheckpoint(BaseCallback):
                 f'{self.name_prefix}_{self.num_timesteps}_steps'
             )
             if self.verbose > 0:
-                print(f'saving model to {path}')
+                print(f'\nsaving model to {path}')
             self.model.save(path)
             self.record_next_ep = True
         if self.recording:
             if self.locals['dones'][0]:
                 if self.verbose > 0:
-                    print(f'stop recording at {self.num_timesteps} steps')
+                    print(f'\nstop recording at {self.num_timesteps} steps')
                 env = self.model.get_env().envs[0]
                 env.stop_record()
                 self.recording = False
         elif self.record_next_ep:
             if self.locals['dones'][0]:
                 if self.verbose > 0:
-                    print(f'start recording at {self.num_timesteps} steps')
+                    print(f'\nstart recording at {self.num_timesteps} steps')
                 env = self.model.get_env().envs[0]
                 env.record_movie(os.path.join(
                     self.record_path,
-                    f'{self.name_prefix}-{self.num_timesteps}.bk2'
+                    f'{self.name_prefix}_{self.num_timesteps}.bk2'
                 ))
                 self.recording = True
                 self.record_next_ep = False
