@@ -1,12 +1,51 @@
 import gym
+import retro
+import itertools
 import cv2
 import numpy as np
-from collections import deque
 from gym import spaces
-from gym.wrappers import TimeLimit
-from stable_baselines3.common.vec_env import VecFrameStack
-from stable_baselines3.common.env_util import make_atari_env
-from stable_baselines3.common.monitor import Monitor
+from collections import deque
+
+
+class Discretizer(gym.ActionWrapper):
+    """
+    Wrap a gym environment and make it use discrete actions.
+    source: https://github.com/openai/retro/blob/master/retro/examples/discretizer.py
+
+    Args:
+        combos: ordered list of lists of valid button combinations
+    """
+
+    def __init__(self, env, combos):
+        super().__init__(env)
+        assert isinstance(env.action_space, spaces.MultiBinary)
+        buttons = env.unwrapped.buttons
+        self._decode_discrete_action = []
+        for combo in combos:
+            arr = np.array([False] * env.action_space.n)
+            for button in combo:
+                arr[buttons.index(button)] = True
+            self._decode_discrete_action.append(arr)
+        self.action_space = spaces.Discrete(len(self._decode_discrete_action))
+        self.use_restricted_actions = retro.Actions.DISCRETE
+
+    def action(self, act):
+        return self._decode_discrete_action[act].copy()
+
+
+class MarioWorldDiscretizer(Discretizer):
+    """
+    Convert actions for the SNES game Super Mario World to a discrete space.
+    """
+
+    def __init__(self, env):
+        combos = []
+        arrow_keys = [None, 'UP', 'DOWN', 'LEFT', 'RIGHT']
+        jump_keys = [None, 'A', 'B']
+        special_keys = [None, 'X']
+        for combo in itertools.product(arrow_keys, jump_keys, special_keys):
+            combos.append(list(filter(None, combo)))
+        super().__init__(env, combos)
 
 
 class StochasticFrameSkip(gym.Wrapper):
@@ -187,6 +226,7 @@ class ScaledFloatFrame(gym.ObservationWrapper):
         return np.array(observation).astype(np.float32) / 255.0
 
 def wrap_env(env):
+    env = MarioWorldDiscretizer(env)
     #env = StochasticFrameSkip(env, n=4, stickprob=0.25)
     #env = TimeLimit(env, max_episode_steps=4000)
     #env = WarpFrame(env)
