@@ -47,7 +47,7 @@ class MarioWorldDiscretizer(Discretizer):
         super().__init__(env, combos)
 
 
-class NoopResetEnv(gym.Wrapper):
+class NoopReset(gym.Wrapper):
     def __init__(self, env, noop_max=30, noop_action=0):
         """
         Sample initial states by taking random number of no-ops on reset.
@@ -126,7 +126,7 @@ class EndEpisodeOnLifeLost(gym.Wrapper):
         return obs
 
 
-class WarpFrame(gym.ObservationWrapper):
+class ResizeFrame(gym.ObservationWrapper):
     """
     Convert to grayscale and warp frames to 84x84 (default)
     as done in the Nature paper and later work.
@@ -159,7 +159,7 @@ class WarpFrame(gym.ObservationWrapper):
         return frame[:, :, :]
 
 
-class FrameStack(gym.Wrapper):
+class StackFrame(gym.Wrapper):
     def __init__(self, env, frame_stack=4):
         super().__init__(env)
         self.frame_stack=frame_stack
@@ -190,9 +190,9 @@ class FrameStack(gym.Wrapper):
 
 def wrap_env(env):
     env = MarioWorldDiscretizer(env)
-    env = NoopResetEnv(env)
+    env = NoopReset(env)
     env = SkipFrame(env)
     env = EndEpisodeOnLifeLost(env)
-    env = WarpFrame(env)
-    env = FrameStack(env)
+    env = ResizeFrame(env)
+    env = StackFrame(env)
     return env
