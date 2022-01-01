@@ -22,9 +22,6 @@
       "x_pos": {
         "reward": 1.0
       },
-      "y_pos": {
-        "penalty": -1.0
-      },
       "checkpoint": {
         "reward": 10.0
       },
