@@ -6,7 +6,7 @@ from callbacks import ProgressBar, SaveCheckpoint
 from recording import play_recording, play_all_recordings
 
 
-def create_env(state):
+def create_env(state, verbose=0):
     env = retro.RetroEnv(
         game='SuperMarioWorld-Snes',
         state=state,
@@ -14,8 +14,9 @@ def create_env(state):
         scenario='./data/scenario.json',
     )
     env = wrap_env(env)
-    check_env(env)
-    print_env_info(env)
+    if verbose > 0:
+        check_env(env)
+        print_env_info(env)
     return env
 
 
@@ -55,8 +56,8 @@ def train_model(model, total_timesteps, save_freq, name_prefix='model', verbose=
         model.learn(total_timesteps, callback=[checkpoint_callback, progress_callback])
 
 
-def test_model(env, model_name):
-    model = PPO.load(f'./models/{model_name}')
+def test_model(model):
+    env = model.get_env()
     obs = env.reset()
     done = False
     while not done:
@@ -65,7 +66,6 @@ def test_model(env, model_name):
         env.render()
         if done:
             obs = env.reset()
-    env.close()
 
 
 def main():
