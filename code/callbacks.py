@@ -61,12 +61,13 @@ class ProgressBarCallback(BaseCallback):
 
 
 class ProgressBar:
-    def __init__(self, total_timesteps):
+    def __init__(self, initial_timesteps, total_timesteps):
         self.prog_bar = None
+        self.initial_timesteps = initial_timesteps
         self.total_timesteps = total_timesteps
     
     def __enter__(self):
-        self.prog_bar = tqdm(total=self.total_timesteps)
+        self.prog_bar = tqdm(initial=self.initial_timesteps, total=self.total_timesteps)
         return ProgressBarCallback(self.prog_bar)
 
     def __exit__(self, type, value, traceback):

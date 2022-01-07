@@ -52,8 +52,15 @@ def train_model(model, total_timesteps, save_freq, name_prefix='model', verbose=
         record_path='./playback/',
         verbose=verbose
     )
-    with ProgressBar(total_timesteps) as progress_callback:
-        model.learn(total_timesteps, callback=[checkpoint_callback, progress_callback])
+    with ProgressBar(
+        model.num_timesteps,
+        model.num_timesteps + total_timesteps
+    ) as progress_callback:
+        model.learn(
+            total_timesteps,
+            reset_num_timesteps=False,
+            callback=[checkpoint_callback, progress_callback]
+        )
 
 
 def test_model(model):
@@ -72,9 +79,10 @@ def main():
     env = create_env('YoshiIsland2')
     model = PPO_model(env)
     train_model(model,
-                total_timesteps=1_000_000,
-                save_freq=100_000,
-                name_prefix='mario_ppo')
+                total_timesteps=2_000_000,
+                save_freq=200_000,
+                name_prefix='mario_ppo',
+                verbose=0)
 
 
 if __name__ == '__main__':
