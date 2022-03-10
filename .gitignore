@@ -1,3 +1,9 @@
 .env/
 .vscode/
 __pycache__/
+rapport/rapport.aux
+rapport/rapport.fdb_latexmk
+rapport/rapport.fls
+rapport/rapport.log
+rapport/rapport.pdf
+rapport/rapport.synctex.gz
