@@ -10,8 +10,8 @@
     \maketitle
     \section{Introduction}
     \begin{figure}[H]
-    \includegraphics[width=.85\textwidth]{start-screen}
     \centering
+    \includegraphics[width=.85\textwidth]{start-screen}
     \end{figure}
 
     \section{Goals}
@@ -27,14 +27,20 @@
         \item $5*3*2=30$ discrete actions
     \end{itemize}
     \begin{figure}[H]
-    \includegraphics[width=.85\textwidth]{snes-controller-annot}
     \centering
+    \includegraphics[width=.85\textwidth]{snes-controller-annot}
     \end{figure}
     \subsection{Frame Manipulation}
     \subsubsection*{Skip frames}
     \begin{itemize}
+        \item Very little change from frame to frame (x FPS)
         \item Consider every 4th frame
         \item Reduced training time
+    \end{itemize}
+    \subsubsection*{Stack frames}
+    \begin{itemize}
+        \item Use 4 subsequent observations for training
+        \item Direction of movement
     \end{itemize}
     \subsubsection*{Resize frames}
     \begin{itemize}
@@ -42,7 +48,11 @@
         \item Grayscale
         \item Reduced memory requirement
     \end{itemize}
-    \subsubsection*{Stack frames}
+    \begin{figure}[H]
+        \centering
+        \includegraphics[height=5cm]{original}\hfill
+        \includegraphics[height=5cm]{scaled}
+    \end{figure}
 
     \section{Model}
 
