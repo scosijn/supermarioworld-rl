@@ -5,5 +5,16 @@ rapport/rapport.aux
 rapport/rapport.fdb_latexmk
 rapport/rapport.fls
 rapport/rapport.log
+rapport/rapport.out
 rapport/rapport.pdf
 rapport/rapport.synctex.gz
+presentation/presentation.aux
+presentation/presentation.fdb_latexmk
+presentation/presentation.fls
+presentation/presentation.log
+presentation/presentation.nav
+presentation/presentation.out
+presentation/presentation.pdf
+presentation/presentation.snm
+presentation/presentation.synctex.gz
+presentation/presentation.toc
