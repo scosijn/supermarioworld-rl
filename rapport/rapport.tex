@@ -12,13 +12,24 @@
 
     \section{Introduction}
     \begin{figure}[H]
-    \centering
-    \includegraphics[width=.85\textwidth]{start-screen}
+        \centering
+        \includegraphics[width=.85\textwidth]{start-screen}
     \end{figure}
     \begin{itemize}
         \item Reinforcement learning
         \item OpenAI Gym\footnote{\url{https://github.com/openai/gym}} - RL library
         \item Gym Retro\footnote{\url{https://github.com/openai/retro/}} - Game integration for gym
+    \end{itemize}
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.95\textwidth]{loop}
+        \caption{\textbf{Source:} Reinforcement Learning: An Introduction}
+        \label{fig:loop}
+    \end{figure}
+    \begin{itemize}
+        \item action = button input
+        \item state = next frame
+        \item reward = checkpoint/level complete/life lost
     \end{itemize}
 
     \section{Goals}
@@ -34,8 +45,8 @@
         \item $5*3*2=30$ discrete actions
     \end{itemize}
     \begin{figure}[H]
-    \centering
-    \includegraphics[width=.85\textwidth]{snes-controller-annot}
+        \centering
+        \includegraphics[width=.85\textwidth]{snes-controller-annot}
     \end{figure}
     \subsection{Frame Manipulation}
     \subsubsection*{Skip frames}
