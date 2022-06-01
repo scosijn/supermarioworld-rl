@@ -34,10 +34,12 @@ class Discretizer(gym.ActionWrapper):
 
 
 class MarioWorldDiscretizer(Discretizer):
-    """
-    Convert actions for the SNES game Super Mario World to a discrete space.
-    """
     def __init__(self, env):
+        """
+        Convert actions for the SNES game Super Mario World to a discrete space.
+
+        :param env: (Gym Environment) the environment to wrap
+        """
         combos = []
         arrow_keys = [None, 'UP', 'DOWN', 'LEFT', 'RIGHT']
         jump_keys = [None, 'A', 'B']
@@ -48,14 +50,17 @@ class MarioWorldDiscretizer(Discretizer):
 
 
 class NoopReset(gym.Wrapper):
-    def __init__(self, env, noop_max=30, noop_action=0):
+    def __init__(self, env, noop_max=30):
         """
         Sample initial states by taking random number of no-ops on reset.
         No-op is assumed to be action 0.
+
+        :param env: (Gym Environment) the environment to wrap
+        :param noop_max: (int) the maximum value of no-ops to run
         """
         super().__init__(env)
         self.noop_max = noop_max
-        self.noop_action = noop_action
+        self.noop_action = 0
 
     def reset(self, **kwargs):
         """
@@ -71,43 +76,13 @@ class NoopReset(gym.Wrapper):
         return obs
 
 
-class SkipFrame(gym.Wrapper):
-    """
-    Return only every n-th frame (frameskipping)
-    :param env: the environment
-    :param skip: number of frame skips
-    """
-    def __init__(self, env, frame_skips=4):
-        super().__init__(env)
-        self._frame_skips = frame_skips
-
-    def step(self, action):
-        """
-        Step the environment with the given action
-        Repeat action, sum reward, and max over last observations.
-        :param action: the action
-        :return: observation, reward, done, information
-        """
-        total_reward = 0.0
-        done = False
-        for _ in range(self._frame_skips):
-            obs, reward, done, info = self.env.step(action)
-            total_reward += reward
-            if done:
-                break
-        return obs, total_reward, done, info
-
-    def reset(self, **kwargs):
-        return self.env.reset(**kwargs)
-
-
-class EndEpisodeOnLifeLost(gym.Wrapper):
-    """
-    Make end-of-life == end-of-episode, but only reset on true game over.
-    Done by DeepMind for the DQN and co. since it helps value estimation.
-    :param env: the environment to wrap
-    """
+class EpisodicLife(gym.Wrapper):
     def __init__(self, env):
+        """
+        Make end-of-life == end-of-episode
+
+        :param env: (Gym Environment) the environment to wrap
+        """
         super().__init__(env)
         self.max_lives = -1
     
@@ -129,25 +104,27 @@ class EndEpisodeOnLifeLost(gym.Wrapper):
 class ResizeFrame(gym.ObservationWrapper):
     """
     Convert to grayscale and warp frames to 84x84 (default)
-    as done in the Nature paper and later work.
-    :param env: the environment
-    :param width:
-    :param height:
+
+    :param env: (Gym Environment) the environment
+    :param width: (int) screen width in pixels
+    :param height: (int) screen height in pixels
+    :param gray: (bool) convert to grayscale
     """
-    def __init__(self, env, screen_size=84, gray=True):
+    def __init__(self, env, width=84, height=84, gray=True):
         super().__init__(env)
-        self.screen_size = (screen_size, screen_size)
+        self.screen_size = (width, height)
         self.gray = gray
         self.observation_space = spaces.Box(
             low=0,
             high=255,
-            shape=(screen_size, screen_size, 1),
+            shape=(width, height, 1),
             dtype=np.uint8
         )
 
     def observation(self, frame):
         """
         returns the current observation from a frame
+
         :param frame: environment frame
         :return: the observation
         """
@@ -159,8 +136,46 @@ class ResizeFrame(gym.ObservationWrapper):
         return frame[:, :, :]
 
 
+class SkipFrame(gym.Wrapper):
+    def __init__(self, env, frame_skips=4):
+        """
+        Return only every n-th frame
+
+        :param env: (Gym Environment) the environment
+        :param skip: (int) number of frame skips
+        """
+        super().__init__(env)
+        self._frame_skips = frame_skips
+
+    def step(self, action):
+        """
+        Step the environment with the given action
+        Repeat action, sum reward, and max over last observations.
+
+        :param action: the action
+        :return: observation, reward, done, information
+        """
+        total_reward = 0.0
+        done = False
+        for _ in range(self._frame_skips):
+            obs, reward, done, info = self.env.step(action)
+            total_reward += reward
+            if done:
+                break
+        return obs, total_reward, done, info
+
+    def reset(self, **kwargs):
+        return self.env.reset(**kwargs)
+
+
 class StackFrame(gym.Wrapper):
     def __init__(self, env, frame_stack=4):
+        """
+        Stack frame_stack last frames.
+
+        :param env: (Gym Environment) the environment
+        :param frame_stack: (int) the number of frames to stack
+        """
         super().__init__(env)
         self.frame_stack=frame_stack
         self.frames = deque([], maxlen=frame_stack)
@@ -192,7 +207,7 @@ def wrap_env(env):
     env = MarioWorldDiscretizer(env)
     env = NoopReset(env)
     env = SkipFrame(env)
-    env = EndEpisodeOnLifeLost(env)
+    env = EpisodicLife(env)
     env = ResizeFrame(env)
     env = StackFrame(env)
     return env
