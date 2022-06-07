@@ -52,8 +52,15 @@ def train_model(model, total_timesteps, save_freq, name_prefix='model', verbose=
         record_path='./playback/',
         verbose=verbose
     )
-    with ProgressBar(total_timesteps) as progress_callback:
-        model.learn(total_timesteps, callback=[checkpoint_callback, progress_callback])
+    with ProgressBar(
+        model.num_timesteps,
+        model.num_timesteps + total_timesteps
+    ) as progress_callback:
+        model.learn(
+            total_timesteps,
+            reset_num_timesteps=False,
+            callback=[checkpoint_callback, progress_callback]
+        )
 
 
 def test_model(model):
