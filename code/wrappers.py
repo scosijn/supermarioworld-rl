@@ -5,6 +5,7 @@ import cv2
 import numpy as np
 from gym import spaces
 from collections import deque
+from gym.wrappers import RecordVideo
 
 
 class Discretizer(gym.ActionWrapper):
@@ -205,9 +206,14 @@ class StackFrame(gym.Wrapper):
 
 def wrap_env(env):
     env = MarioWorldDiscretizer(env)
-    env = NoopReset(env)
-    env = SkipFrame(env)
+    env = RecordVideo(
+        env,
+        video_folder='./videos/',
+        episode_trigger=lambda x : x == 0
+    )
     env = EpisodicLife(env)
+    env = NoopReset(env)
     env = ResizeFrame(env)
-    env = StackFrame(env)
+    #env = SkipFrame(env)
+    #env = StackFrame(env)
     return env

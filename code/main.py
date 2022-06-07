@@ -68,13 +68,35 @@ def test_model(model):
             obs = env.reset()
 
 
+def random_agent(env):
+    env.reset()
+    while True:
+        _, _, done, _ = env.step(env.action_space.sample())
+        env.render()
+        if done:
+            env.reset()
+
+
 def main():
     env = create_env('YoshiIsland2')
+    #env.reset()
+    #while True:
+    #    _, _, done, _ = env.step(0)
+    #    env.render(mode='human')
+    #    if done:
+    #        env.reset()
+
     model = PPO_model(env)
     train_model(model,
-                total_timesteps=1_000_000,
-                save_freq=100_000,
+                total_timesteps=4000,
+                save_freq=0,
                 name_prefix='mario_ppo')
+
+    #model = PPO_model(env)
+    #train_model(model,
+    #            total_timesteps=1_000_000,
+    #            save_freq=100_000,
+    #            name_prefix='mario_ppo')
 
 
 if __name__ == '__main__':
