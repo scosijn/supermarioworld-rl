@@ -6,6 +6,8 @@ import numpy as np
 from gym import spaces
 from collections import deque
 from gym.wrappers import RecordVideo
+from gym.wrappers import ResizeObservation
+from gym.wrappers import GrayScaleObservation
 
 
 class Discretizer(gym.ActionWrapper):
@@ -14,6 +16,7 @@ class Discretizer(gym.ActionWrapper):
     Source: https://github.com/openai/retro/blob/master/retro/examples/discretizer.py
 
     Args:
+        env: the environment to wrap
         combos: ordered list of lists of valid button combinations
     """
 
@@ -35,12 +38,14 @@ class Discretizer(gym.ActionWrapper):
 
 
 class MarioWorldDiscretizer(Discretizer):
-    def __init__(self, env):
-        """
-        Convert actions for the SNES game Super Mario World to a discrete space.
+    """
+    Convert actions for the SNES game Super Mario World to a discrete space.
 
-        :param env: (Gym Environment) the environment to wrap
-        """
+    Args:
+        env (Gym Environment): the environment to wrap
+    """
+
+    def __init__(self, env):
         combos = []
         arrow_keys = [None, 'UP', 'DOWN', 'LEFT', 'RIGHT']
         jump_keys = [None, 'A', 'B']
@@ -50,40 +55,39 @@ class MarioWorldDiscretizer(Discretizer):
         super().__init__(env, combos)
 
 
-class NoopReset(gym.Wrapper):
-    def __init__(self, env, noop_max=30):
-        """
-        Sample initial states by taking random number of no-ops on reset.
-        No-op is assumed to be action 0.
+class RandomStart(gym.Wrapper):
+    """
+    Randomize the environment by waiting a random number of steps on reset
 
-        :param env: (Gym Environment) the environment to wrap
-        :param noop_max: (int) the maximum value of no-ops to run
-        """
+    Args:
+        env (Gym Environment): the environment to wrap
+        max_steps (int): the maximum amount of steps to wait
+    """
+
+    def __init__(self, env, max_steps=30):
         super().__init__(env)
-        self.noop_max = noop_max
-        self.noop_action = 0
+        self.max_steps = max_steps
 
     def reset(self, **kwargs):
-        """
-        Do no-op action for a number of steps in [1, noop_max].
-        """
         self.env.reset(**kwargs)
-        noops = self.unwrapped.np_random.randint(1, self.noop_max + 1)
+        steps = self.unwrapped.np_random.randint(1, self.max_steps + 1)
         obs = None
-        for _ in range(noops):
-            obs, _, done, _ = self.env.step(self.noop_action)
+        for _ in range(steps):
+            obs, _, done, _ = self.env.step(0)
             if done:
                 obs = self.env.reset(**kwargs)
         return obs
 
 
-class EpisodicLife(gym.Wrapper):
-    def __init__(self, env):
-        """
-        Make end-of-life == end-of-episode
+class ResetOnLifeLost(gym.Wrapper):
+    """
+    Reset the environment when a life is lost
 
-        :param env: (Gym Environment) the environment to wrap
-        """
+    Args:
+        env (Gym Environment): the environment to wrap
+    """
+
+    def __init__(self, env):
         super().__init__(env)
         self.max_lives = -1
     
@@ -209,11 +213,13 @@ def wrap_env(env):
     env = RecordVideo(
         env,
         video_folder='./videos/',
-        episode_trigger=lambda x : x == 0
+        #episode_trigger=lambda x : x == 0
     )
-    env = EpisodicLife(env)
-    env = NoopReset(env)
-    env = ResizeFrame(env)
+    env = ResetOnLifeLost(env)
+    env = RandomStart(env)
+    #env = ResizeObservation(env, 84)
+    #env = GrayScaleObservation(env)
+    #env = ResizeFrame(env)
     #env = SkipFrame(env)
     #env = StackFrame(env)
     return env
