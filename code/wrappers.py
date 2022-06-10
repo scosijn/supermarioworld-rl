@@ -37,6 +37,30 @@ class Discretizer(gym.ActionWrapper):
         return self._decode_discrete_action[act].copy()
 
 
+class MultiDiscretizer(gym.ActionWrapper):
+    def __init__(self, env, actions):
+        super().__init__(env)
+        assert isinstance(env.action_space, spaces.MultiBinary)
+        buttons = env.unwrapped.buttons
+        self._decode_action = []
+        #for action in actions:
+        #    arr = np.array([False] * env.action_space.n)
+        #    for button in action:
+        self.action_space = spaces.MultiDiscrete()
+        self.use_restricted_actions = retro.Actions.MULTI_DISCRETE
+
+    def action(self, act):
+        return 
+
+
+class MarioWorldMultiDiscretizer(MultiDiscretizer):
+    def __init__(self, env):
+        arrow_keys = [None, 'UP', 'DOWN', 'LEFT', 'RIGHT']
+        jump_keys = [None, 'A', 'B']
+        special_keys = [None, 'X']
+        super().__init__(env, [arrow_keys, jump_keys, special_keys])
+
+
 class MarioWorldDiscretizer(Discretizer):
     """
     Convert actions for the SNES game Super Mario World to a discrete space.
