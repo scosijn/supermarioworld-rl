@@ -3,8 +3,8 @@ import retro
 import itertools
 import cv2
 import numpy as np
-from gym import spaces
 from collections import deque
+from gym import spaces
 from gym.wrappers import RecordVideo
 from gym.wrappers import ResizeObservation
 from gym.wrappers import GrayScaleObservation
@@ -30,35 +30,39 @@ class Discretizer(gym.ActionWrapper):
             for button in combo:
                 arr[buttons.index(button)] = True
             self._decode_discrete_action.append(arr)
+        print(buttons)
+        print(combos)
         self.action_space = spaces.Discrete(len(self._decode_discrete_action))
         self.use_restricted_actions = retro.Actions.DISCRETE
 
     def action(self, act):
+        print(act)
+        print(self._decode_discrete_action[act].copy())
         return self._decode_discrete_action[act].copy()
 
 
-class MultiDiscretizer(gym.ActionWrapper):
-    def __init__(self, env, actions):
+class MultiDiscreteActions(gym.ActionWrapper):
+    def __init__(self, env):
         super().__init__(env)
         assert isinstance(env.action_space, spaces.MultiBinary)
-        buttons = env.unwrapped.buttons
         self._decode_action = []
-        #for action in actions:
-        #    arr = np.array([False] * env.action_space.n)
-        #    for button in action:
-        self.action_space = spaces.MultiDiscrete()
+        buttons = env.unwrapped.buttons
+        actions = [
+            [None, 'UP', 'DOWN', 'LEFT', 'RIGHT'], # arrow keys
+            [None, 'A', 'B'],                      # jump keys
+            [None, 'X']                            # special keys
+        ]
+        for act in actions:
+            arr = np.array([False] * env.action_space.n)
+            for button in act:
+                arr[buttons.index(button)] = True
+            print('arr:', arr)
+            self._decode_action.append(arr)
+        self.action_space = spaces.MultiDiscrete([len(x) for x in actions])
         self.use_restricted_actions = retro.Actions.MULTI_DISCRETE
 
     def action(self, act):
-        return 
-
-
-class MarioWorldMultiDiscretizer(MultiDiscretizer):
-    def __init__(self, env):
-        arrow_keys = [None, 'UP', 'DOWN', 'LEFT', 'RIGHT']
-        jump_keys = [None, 'A', 'B']
-        special_keys = [None, 'X']
-        super().__init__(env, [arrow_keys, jump_keys, special_keys])
+        return 0
 
 
 class MarioWorldDiscretizer(Discretizer):
@@ -233,14 +237,15 @@ class StackFrame(gym.Wrapper):
 
 
 def wrap_env(env):
-    env = MarioWorldDiscretizer(env)
-    env = RecordVideo(
-        env,
-        video_folder='./videos/',
-        #episode_trigger=lambda x : x == 0
-    )
-    env = ResetOnLifeLost(env)
-    env = RandomStart(env)
+    env = MultiDiscreteActions(env)
+    #env = MarioWorldDiscretizer(env)
+    #env = RecordVideo(
+    #    env,
+    #    video_folder='./videos/',
+    #    #episode_trigger=lambda x : x == 0
+    #)
+    #env = ResetOnLifeLost(env)
+    #env = RandomStart(env)
     #env = ResizeObservation(env, 84)
     #env = GrayScaleObservation(env)
     #env = ResizeFrame(env)

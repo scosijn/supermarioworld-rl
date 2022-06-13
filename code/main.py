@@ -86,18 +86,20 @@ def random_agent(env):
 
 def main():
     env = create_env('YoshiIsland2')
-    #env.reset()
+    env.reset()
+    env.step(2)
+
     #while True:
     #    _, _, done, _ = env.step(0)
     #    env.render(mode='human')
     #    if done:
     #        env.reset()
 
-    model = PPO_model(env)
-    train_model(model,
-                total_timesteps=4000,
-                save_freq=0,
-                name_prefix='mario_ppo')
+    #model = PPO_model(env)
+    #train_model(model,
+    #            total_timesteps=4000,
+    #            save_freq=0,
+    #            name_prefix='mario_ppo')
 
     #model = PPO_model(env)
     #train_model(model,
