@@ -27,9 +27,6 @@
       },
       "endoflevel": {
         "reward": 10.0
-      },
-      "lives": {
-        "penalty": 10.0
       }
     }
   }

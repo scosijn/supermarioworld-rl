@@ -10,82 +10,103 @@ from gym.wrappers import ResizeObservation
 from gym.wrappers import GrayScaleObservation
 
 
-class Discretizer(gym.ActionWrapper):
-    """
-    Wrap a gym environment and make it use discrete actions.
-    Source: https://github.com/openai/retro/blob/master/retro/examples/discretizer.py
-
-    Args:
-        env: the environment to wrap
-        combos: ordered list of lists of valid button combinations
-    """
-
-    def __init__(self, env, combos):
-        super().__init__(env)
-        assert isinstance(env.action_space, spaces.MultiBinary)
-        buttons = env.unwrapped.buttons
-        self._decode_discrete_action = []
-        for combo in combos:
-            arr = np.array([False] * env.action_space.n)
-            for button in combo:
-                arr[buttons.index(button)] = True
-            self._decode_discrete_action.append(arr)
-        print(buttons)
-        print(combos)
-        self.action_space = spaces.Discrete(len(self._decode_discrete_action))
-        self.use_restricted_actions = retro.Actions.DISCRETE
-
-    def action(self, act):
-        print(act)
-        print(self._decode_discrete_action[act].copy())
-        return self._decode_discrete_action[act].copy()
+#class Discretizer(gym.ActionWrapper):
+#    """
+#    Wrap a gym environment and make it use discrete actions.
+#    Source: https://github.com/openai/retro/blob/master/retro/examples/discretizer.py
+#
+#    Args:
+#        env: the environment to wrap
+#        combos: ordered list of lists of valid button combinations
+#    """
+#
+#    def __init__(self, env, combos):
+#        super().__init__(env)
+#        assert isinstance(env.action_space, spaces.MultiBinary)
+#        buttons = env.unwrapped.buttons
+#        self._decode_discrete_action = []
+#        for combo in combos:
+#            arr = np.array([False] * env.action_space.n)
+#            for button in combo:
+#                arr[buttons.index(button)] = True
+#            self._decode_discrete_action.append(arr)
+#        self.action_space = spaces.Discrete(len(self._decode_discrete_action))
+#        self.use_restricted_actions = retro.Actions.DISCRETE
+#
+#    def action(self, act):
+#        return self._decode_discrete_action[act].copy()
+#
+#
+#class MarioWorldDiscretizer(Discretizer):
+#    """
+#    Convert actions for the SNES game Super Mario World to a discrete space.
+#
+#    Args:
+#        env (Gym Environment): the environment to wrap
+#    """
+#
+#    def __init__(self, env):
+#        combos = []
+#        arrow_keys = [None, 'UP', 'DOWN', 'LEFT', 'RIGHT']
+#        jump_keys = [None, 'A', 'B']
+#        special_keys = [None, 'X']
+#        for combo in itertools.product(arrow_keys, jump_keys, special_keys):
+#            combos.append(list(filter(None, combo)))
+#        super().__init__(env, combos)
 
 
 class MultiDiscreteActions(gym.ActionWrapper):
-    def __init__(self, env):
+    """
+    Wrap a gym environment and convert from MultiBinary to MultiDiscrete action space.
+
+    Args:
+        env (Gym Environment): the environment to wrap
+        actions: list of lists of valid actions where each list represents a discrete space
+    """
+
+    def __init__(self, env, actions):
         super().__init__(env)
         assert isinstance(env.action_space, spaces.MultiBinary)
-        self._decode_action = []
+        assert isinstance(env.action_space.n, int)
+        self._convert_action = []
+        self._n = env.action_space.n
         buttons = env.unwrapped.buttons
-        actions = [
-            [None, 'UP', 'DOWN', 'LEFT', 'RIGHT'], # arrow keys
-            [None, 'A', 'B'],                      # jump keys
-            [None, 'X']                            # special keys
-        ]
-        for act in actions:
-            arr = np.array([False] * env.action_space.n)
-            for button in act:
-                arr[buttons.index(button)] = True
-            print('arr:', arr)
-            self._decode_action.append(arr)
-        self.action_space = spaces.MultiDiscrete([len(x) for x in actions])
+        for action in actions:
+            action_map = dict()
+            for i, button in enumerate(action, start=1):
+                action_map[i] = buttons.index(button)
+            self._convert_action.append(action_map)
+        self.action_space = spaces.MultiDiscrete([len(x) + 1 for x in actions])
         self.use_restricted_actions = retro.Actions.MULTI_DISCRETE
 
-    def action(self, act):
-        return 0
+    def action(self, action):
+        converted_action = np.full(self._n, False)
+        for i, v in enumerate(action):
+            if v > 0: # 0 = no action
+                converted_action[self._convert_action[i][v]] = True
+        return converted_action
 
 
-class MarioWorldDiscretizer(Discretizer):
+class SuperMarioWorldActions(MultiDiscreteActions):
     """
-    Convert actions for the SNES game Super Mario World to a discrete space.
+    Convert actions for the SNES game Super Mario World to a MultiDiscrete action space.
 
     Args:
         env (Gym Environment): the environment to wrap
     """
 
     def __init__(self, env):
-        combos = []
-        arrow_keys = [None, 'UP', 'DOWN', 'LEFT', 'RIGHT']
-        jump_keys = [None, 'A', 'B']
-        special_keys = [None, 'X']
-        for combo in itertools.product(arrow_keys, jump_keys, special_keys):
-            combos.append(list(filter(None, combo)))
-        super().__init__(env, combos)
+        actions = [
+            ['UP', 'DOWN', 'LEFT', 'RIGHT'], # arrow keys
+            ['A', 'B'],                      # jump keys
+            ['X']                            # special keys
+        ]
+        super().__init__(env, actions)
 
 
 class RandomStart(gym.Wrapper):
     """
-    Randomize the environment by waiting a random number of steps on reset
+    Randomize the environment by waiting a random number of steps on reset.
 
     Args:
         env (Gym Environment): the environment to wrap
@@ -99,9 +120,10 @@ class RandomStart(gym.Wrapper):
     def reset(self, **kwargs):
         self.env.reset(**kwargs)
         steps = self.unwrapped.np_random.randint(1, self.max_steps + 1)
+        wait = np.zeros(self.env.action_space.shape, dtype=int)
         obs = None
         for _ in range(steps):
-            obs, _, done, _ = self.env.step(0)
+            obs, _, done, _ = self.env.step(wait)
             if done:
                 obs = self.env.reset(**kwargs)
         return obs
@@ -109,7 +131,7 @@ class RandomStart(gym.Wrapper):
 
 class ResetOnLifeLost(gym.Wrapper):
     """
-    Reset the environment when a life is lost
+    Reset the environment when a life is lost.
 
     Args:
         env (Gym Environment): the environment to wrap
@@ -237,18 +259,14 @@ class StackFrame(gym.Wrapper):
 
 
 def wrap_env(env):
-    env = MultiDiscreteActions(env)
-    #env = MarioWorldDiscretizer(env)
+    env = SuperMarioWorldActions(env)
     #env = RecordVideo(
     #    env,
     #    video_folder='./videos/',
     #    #episode_trigger=lambda x : x == 0
     #)
-    #env = ResetOnLifeLost(env)
-    #env = RandomStart(env)
-    #env = ResizeObservation(env, 84)
-    #env = GrayScaleObservation(env)
-    #env = ResizeFrame(env)
-    #env = SkipFrame(env)
-    #env = StackFrame(env)
+    env = ResetOnLifeLost(env)
+    env = RandomStart(env)
+    env = ResizeObservation(env, shape=(84, 84))
+    env = GrayScaleObservation(env, keep_dim=True)
     return env

@@ -4,6 +4,7 @@ from stable_baselines3.common.env_checker import check_env
 from wrappers import wrap_env
 from callbacks import ProgressBar, SaveCheckpoint
 from recording import play_recording, play_all_recordings
+import matplotlib.pyplot as plt
 
 
 def create_env(state, verbose=0):
@@ -75,25 +76,32 @@ def test_model(model):
             obs = env.reset()
 
 
-def random_agent(env):
+def random_agent(env, infinite=False):
+    """
+    Agent that will take a random action on each timestep.
+
+    Args:
+        env (Gym Environment): the environment
+        infinite (bool): end after a single episode if false
+    """
     env.reset()
-    while True:
+    done = False
+    while not done:
         _, _, done, _ = env.step(env.action_space.sample())
         env.render()
-        if done:
+        if done and infinite:
             env.reset()
+            done = False
+    env.render(close=True)
+    env.close()
 
 
 def main():
-    env = create_env('YoshiIsland2')
+    env = create_env('YoshiIsland2', verbose=1)
     env.reset()
-    env.step(2)
-
-    #while True:
-    #    _, _, done, _ = env.step(0)
-    #    env.render(mode='human')
-    #    if done:
-    #        env.reset()
+    obs, _, _, _ = env.step([0, 0, 0])
+    plt.imshow(obs, cmap='gray', vmin=0, vmax=255)
+    plt.savefig('grayscale.png')
 
     #model = PPO_model(env)
     #train_model(model,
