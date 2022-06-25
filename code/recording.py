@@ -23,6 +23,8 @@ def play_recording(path):
                 actions.append(movie.get_key(i, p))
         env.step(actions)
         env.render()
+        time.sleep(0.01)
+    env.render(close=True)
     env.close()
     movie.close()
 

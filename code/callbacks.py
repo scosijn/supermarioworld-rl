@@ -4,7 +4,7 @@ from stable_baselines3.common.callbacks import BaseCallback
 
 
 class SaveCheckpoint(BaseCallback):
-    def __init__(self, save_freq, name_prefix, model_path, record_path, verbose=1):
+    def __init__(self, save_freq, name_prefix, model_path, record_path, verbose=0):
         super(SaveCheckpoint, self).__init__(verbose=verbose)
         self.save_freq = save_freq
         self.name_prefix = name_prefix

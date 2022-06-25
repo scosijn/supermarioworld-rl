@@ -1,33 +1,59 @@
+import os
 import retro
-from stable_baselines3 import PPO
-from stable_baselines3.common.env_checker import check_env
+import time
 from wrappers import wrap_env
 from callbacks import ProgressBar, SaveCheckpoint
 from recording import play_recording, play_all_recordings
-import matplotlib.pyplot as plt
+from stable_baselines3 import PPO
+from stable_baselines3.common.vec_env import VecFrameStack
+from stable_baselines3.common.env_util import make_vec_env
+from stable_baselines3.common.monitor import Monitor
+from stable_baselines3.common.env_checker import check_env
 
 
-def create_env(state, verbose=0):
+#def make_retro_env_vec(state, verbose=0):
+#    env = make_vec_env(
+#        env_id=retro.RetroEnv,
+#        wrapper_class=wrap_env,
+#        env_kwargs={
+#            'game': 'SuperMarioWorld-Snes',
+#            'state': state,
+#            'info': './data/data.json',
+#            'scenario': './data/scenario.json'
+#        }
+#    )
+#    env = VecFrameStack(env, n_stack=4)
+#    if verbose > 0:
+#        print('gamename: {}'.format(env.get_attr('gamename')[0]))
+#        print('statename: {}'.format(env.get_attr('statename')[0]))
+#        print('buttons: {}'.format(env.get_attr('buttons')[0]))
+#        print('action_space: {}'.format(env.get_attr('action_space')[0]))
+#        print('observation_space: {}'.format(env.get_attr('observation_space')[0]))
+#        print('reward_range: {}'.format(env.get_attr('reward_range')[0]))
+#    return env
+
+
+def make_retro_env(state, log=0, verbose=0):
     env = retro.RetroEnv(
         game='SuperMarioWorld-Snes',
         state=state,
         info='./data/data.json',
-        scenario='./data/scenario.json',
+        scenario='./data/scenario.json'
     )
     env = wrap_env(env)
+    check_env(env)
+    if log > 0:
+        log_path = './logs/'
+        os.makedirs(log_path, exist_ok=True)
+        env = Monitor(env, log_path)
     if verbose > 0:
-        check_env(env)
-        print_env_info(env)
+        print('gamename: {}'.format(env.gamename))
+        print('statename: {}'.format(env.statename))
+        print('buttons: {}'.format(env.buttons))
+        print('action_space: {}'.format(env.action_space))
+        print('observation_space: {}'.format(env.observation_space))
+        print('reward_range: {}'.format(env.reward_range))
     return env
-
-
-def print_env_info(env):
-    print('gamename: {}'.format(env.gamename))
-    print('statename: {}'.format(env.statename))
-    print('buttons: {}'.format(env.buttons))
-    print('action_space: {}'.format(env.action_space))
-    print('observation_space: {}'.format(env.observation_space.shape))
-    print('reward_range: {}'.format(env.reward_range))
 
 
 def PPO_model(env):
@@ -40,12 +66,11 @@ def PPO_model(env):
                 ent_coef=.01,
                 clip_range=0.1,
                 gamma=0.99,
-                gae_lambda=0.95,
-                tensorboard_log='./tensorboard/')
+                gae_lambda=0.95)
     return model
 
 
-def train_model(model, total_timesteps, save_freq, name_prefix='model', verbose=1):
+def train_model(model, total_timesteps, save_freq, name_prefix='model', verbose=0):
     checkpoint_callback = SaveCheckpoint(
         save_freq=save_freq,
         name_prefix=name_prefix,
@@ -97,17 +122,15 @@ def random_agent(env, infinite=False):
 
 
 def main():
-    env = create_env('YoshiIsland2', verbose=1)
-    env.reset()
-    obs, _, _, _ = env.step([0, 0, 0])
-    plt.imshow(obs, cmap='gray', vmin=0, vmax=255)
-    plt.savefig('grayscale.png')
-
-    #model = PPO_model(env)
-    #train_model(model,
-    #            total_timesteps=4000,
-    #            save_freq=0,
-    #            name_prefix='mario_ppo')
+    start = time.time()
+    env = make_retro_env('YoshiIsland2')
+    model = PPO_model(env)
+    train_model(model,
+                total_timesteps=1_000,
+                save_freq=0,
+                name_prefix='mario_ppo')
+    print("--- %s seconds ---" % (time.time() - start))
+    env.close()
 
     #model = PPO_model(env)
     #train_model(model,
