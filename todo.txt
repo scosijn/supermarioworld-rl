@@ -1,8 +1,5 @@
-REWARD
-add penalty for running into wall
-add reward for speed
-
-WRAPPERS
-frame stack
-
-HYPERPARAMS
+reward function
+blog post
+hyperparams
+gpu
+convert playback to video
