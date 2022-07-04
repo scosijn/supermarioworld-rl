@@ -31,8 +31,8 @@ class Discretizer(gym.ActionWrapper):
         self.action_space = spaces.Discrete(len(self._decode_discrete_action))
         self.use_restricted_actions = retro.Actions.DISCRETE
 
-    def action(self, act):
-        return self._decode_discrete_action[act].copy()
+    def action(self, action):
+        return self._decode_discrete_action[action].copy()
 
 
 class MarioWorldDiscretizer(Discretizer):
@@ -46,9 +46,8 @@ class MarioWorldDiscretizer(Discretizer):
     def __init__(self, env):
         combos = []
         arrow_keys = [None, 'UP', 'DOWN', 'LEFT', 'RIGHT']
-        jump_keys = [None, 'A', 'B']
-        special_keys = [None, 'X']
-        for combo in itertools.product(arrow_keys, jump_keys, special_keys):
+        special_keys = [None, 'A', 'B', 'X']
+        for combo in itertools.product(arrow_keys, special_keys):
             combos.append(list(filter(None, combo)))
         super().__init__(env, combos)
 

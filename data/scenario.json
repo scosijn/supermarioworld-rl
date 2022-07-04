@@ -20,13 +20,13 @@
   "reward": {
     "variables": {
       "x_pos": {
-        "reward": 1.0
+        "reward": 0.5
       },
       "checkpoint": {
-        "reward": 50.0
+        "reward": 1.0
       },
       "endoflevel": {
-        "reward": 100.0
+        "reward": 1.0
       }
     }
   }
