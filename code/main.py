@@ -106,11 +106,19 @@ def random_agent(env, infinite=False):
 
 def main():
     env = make_retro_env('YoshiIsland2')
-    model = PPO_model(env)
-    train_model(model,
-                total_timesteps=25_000,
-                save_freq=5_000,
-                name_prefix='mario_ppo')
+    env.reset()
+    for _ in range(100):
+        #obs, rew, done, info = env.step(env.action_space.sample())
+        obs, rew, done, info = env.step([4, 3])
+        print(info)
+        print()
+        if done:
+            env.reset()
+    #model = PPO_model(env)
+    #train_model(model,
+    #            total_timesteps=1000,
+    #            save_freq=0,
+    #            name_prefix='mario_ppo')
 
     #model = PPO_model(env)
     #train_model(model,

@@ -8,19 +8,17 @@ from gym.wrappers import ResizeObservation
 from gym.wrappers import GrayScaleObservation
 
 
-class Discretizer(gym.ActionWrapper):
+class Discretizer():
     """
-    Wrap a gym environment and make it use discrete actions.
+    Wrap a gym environment and make it use Discrete actions.
     Source: https://github.com/openai/retro/blob/master/retro/examples/discretizer.py
 
     Args:
-        env: the environment to wrap
+        env (Gym Environment): the environment to wrap
         combos: ordered list of lists of valid button combinations
     """
 
     def __init__(self, env, combos):
-        super().__init__(env)
-        assert isinstance(env.action_space, spaces.MultiBinary)
         buttons = env.unwrapped.buttons
         self._decode_discrete_action = []
         for combo in combos:
@@ -29,32 +27,14 @@ class Discretizer(gym.ActionWrapper):
                 arr[buttons.index(button)] = True
             self._decode_discrete_action.append(arr)
         self.action_space = spaces.Discrete(len(self._decode_discrete_action))
-        self.use_restricted_actions = retro.Actions.DISCRETE
 
-    def action(self, action):
-        return self._decode_discrete_action[action].copy()
+    def action(self, act):
+        return self._decode_discrete_action[act].copy()
 
 
-class MarioWorldDiscretizer(Discretizer):
+class MultiDiscretizer():
     """
-    Convert actions for the SNES game Super Mario World to a discrete space.
-
-    Args:
-        env (Gym Environment): the environment to wrap
-    """
-
-    def __init__(self, env):
-        combos = []
-        arrow_keys = [None, 'UP', 'DOWN', 'LEFT', 'RIGHT']
-        special_keys = [None, 'A', 'B', 'X']
-        for combo in itertools.product(arrow_keys, special_keys):
-            combos.append(list(filter(None, combo)))
-        super().__init__(env, combos)
-
-
-class MultiDiscreteActions(gym.ActionWrapper):
-    """
-    Wrap a gym environment and convert from MultiBinary to MultiDiscrete action space.
+    Wrap a gym environment and make it use MultiDiscrete actions.
 
     Args:
         env (Gym Environment): the environment to wrap
@@ -62,9 +42,6 @@ class MultiDiscreteActions(gym.ActionWrapper):
     """
 
     def __init__(self, env, actions):
-        super().__init__(env)
-        assert isinstance(env.action_space, spaces.MultiBinary)
-        assert isinstance(env.action_space.n, int)
         self._convert_action = []
         self._n = env.action_space.n
         buttons = env.unwrapped.buttons
@@ -74,56 +51,81 @@ class MultiDiscreteActions(gym.ActionWrapper):
                 action_map[i] = buttons.index(button)
             self._convert_action.append(action_map)
         self.action_space = spaces.MultiDiscrete([len(x) + 1 for x in actions])
-        self.use_restricted_actions = retro.Actions.MULTI_DISCRETE
 
-    def action(self, action):
+    def action(self, act):
         converted_action = np.full(self._n, False)
-        for i, v in enumerate(action):
+        for i, v in enumerate(act):
             if v > 0: # 0 = no action
                 converted_action[self._convert_action[i][v]] = True
         return converted_action
 
 
-class SuperMarioWorldActions(MultiDiscreteActions):
+class MarioActionWrapper(gym.ActionWrapper):
     """
-    Convert actions for the SNES game Super Mario World to a MultiDiscrete action space.
+    Convert actions for the game Super Mario World to a Discrete or MultiDiscrete action space.
 
     Args:
         env (Gym Environment): the environment to wrap
+        aspace (retro.Actions): action space to convert to
     """
 
-    def __init__(self, env):
-        actions = [
-            ['UP', 'DOWN', 'LEFT', 'RIGHT'],
-            ['A', 'B', 'X'],
-        ]
-        super().__init__(env, actions)
-
-
-class RandomStart(gym.Wrapper):
-    """
-    Randomize the environment by waiting a random number of steps on reset.
-
-    Args:
-        env (Gym Environment): the environment to wrap
-        max_steps (int): the maximum amount of steps to wait
-    """
-
-    def __init__(self, env, max_steps=30):
+    def __init__(self, env, aspace):
         super().__init__(env)
-        assert max_steps >= 0
-        self.max_steps = max_steps
+        assert isinstance(env.action_space, spaces.MultiBinary)
+        assert isinstance(env.action_space.n, int)
+        assert (aspace == retro.Actions.DISCRETE or
+                aspace == retro.Actions.MULTI_DISCRETE)
+        arrow_keys = ['UP', 'DOWN', 'LEFT', 'RIGHT']
+        special_keys = ['A', 'B', 'X']
+        if aspace == retro.Actions.DISCRETE:
+            combos = []
+            for combo in itertools.product([None] + arrow_keys, [None] + special_keys):
+                combos.append(list(filter(None, combo)))
+            self.action_wrapper = Discretizer(env, combos)
+        elif aspace == retro.Actions.MULTI_DISCRETE:
+            self.action_wrapper = MultiDiscretizer(env, [arrow_keys, special_keys])
+        self.action_space = self.action_wrapper.action_space
+        self.use_restricted_actions = aspace
 
-    def reset(self, **kwargs):
-        self.env.reset(**kwargs)
-        steps = self.unwrapped.np_random.randint(1, self.max_steps + 1)
-        wait = np.zeros(self.env.action_space.shape, dtype=int)
-        obs = None
-        for _ in range(steps):
-            obs, _, done, _ = self.env.step(wait)
-            if done:
-                obs = self.env.reset(**kwargs)
-        return obs
+    def action(self, act):
+        return self.action_wrapper.action(act)
+
+
+class MarioRewardWrapper(gym.RewardWrapper):
+    def __init__(self, env, min_reward=-15, max_reward=15):
+        super().__init__(env)
+        self.min_reward = min_reward
+        self.max_reward = max_reward
+        self._reward_range = (min_reward, max_reward)
+
+    def reward(self, rew):
+        return np.clip(rew, self.min_reward, self.max_reward)
+
+
+#class RandomStart(gym.Wrapper):
+#    """
+#    Randomize the environment by waiting a random number of steps on reset.
+#
+#    Args:
+#        env (Gym Environment): the environment to wrap
+#        max_steps (int): the maximum amount of steps to wait
+#    """
+#
+#    def __init__(self, env, max_steps=30):
+#        super().__init__(env)
+#        assert max_steps >= 0
+#        self.max_steps = max_steps
+#
+#    def reset(self, **kwargs):
+#        self.env.reset(**kwargs)
+#        steps = self.unwrapped.np_random.randint(1, self.max_steps + 1)
+#        wait = np.zeros(self.env.action_space.shape, dtype=int)
+#        obs = None
+#        for _ in range(steps):
+#            obs, _, done, _ = self.env.step(wait)
+#            if done:
+#                obs = self.env.reset(**kwargs)
+#        return obs
 
 
 class ResetOnLifeLost(gym.Wrapper):
@@ -151,6 +153,36 @@ class ResetOnLifeLost(gym.Wrapper):
         obs = self.env.reset(**kwargs)
         self.max_lives = -1
         return obs
+
+
+class StickyActions(gym.Wrapper):
+    """
+    Sticky actions are used to introduce stochasticity into the environment.
+    At every time step there is a chance that the agent will repeat its previous action.
+
+    Args:
+        env (Gym Environment): the environment to wrap
+        stickiness (float): the probability of executing the previous action
+    """
+    def __init__(self, env, stickiness):
+        super().__init__(env)
+        assert 0 <= stickiness <= 1
+        self.stickiness = stickiness
+
+    def reset(self, **kwargs):
+        obs = self.env.reset(**kwargs)
+        self.rng = np.random.default_rng()
+        self.previous_action = None
+        return obs
+
+    def step(self, action):
+        if (
+            self.previous_action is not None
+            and self.rng.uniform() < self.stickiness
+        ):
+            action = self.previous_action
+        self.previous_action = action
+        return self.env.step(action)
 
 
 class FrameSkip(gym.Wrapper):
@@ -218,43 +250,12 @@ class FrameStack(gym.Wrapper):
         return np.concatenate(self.frames, axis=2)
 
 
-class StickyActions(gym.Wrapper):
-    """
-    Sticky actions are used to introduce stochasticity into the environment.
-    At every time step there is a chance that the agent will repeat its previous action.
-
-    Args:
-        env (Gym Environment): the environment to wrap
-        stickiness (float): the probability of executing the previous action
-    """
-    def __init__(self, env, stickiness):
-        super().__init__(env)
-        assert 0 <= stickiness <= 1
-        self.stickiness = stickiness
-
-    def reset(self, **kwargs):
-        obs = self.env.reset(**kwargs)
-        self.rng = np.random.default_rng()
-        self.previous_action = None
-        return obs
-
-    def step(self, action):
-        if (
-            self.previous_action is not None
-            and self.rng.uniform() < self.stickiness
-        ):
-            action = self.previous_action
-        self.previous_action = action
-        return self.env.step(action)
-
-
 def wrap_env(env):
-    env = SuperMarioWorldActions(env)
-    #env = MarioWorldDiscretizer(env)
+    env = MarioActionWrapper(env, retro.Actions.MULTI_DISCRETE)
     env = ResizeObservation(env, shape=(84, 84))
     env = GrayScaleObservation(env, keep_dim=True)
     env = ResetOnLifeLost(env)
-    env = StickyActions(env, stickiness=0.25)
+    #env = StickyActions(env, stickiness=0.25)
     env = FrameSkip(env, n_skip=4)
-    env = FrameStack(env, n_stack=4)
+    #env = FrameStack(env, n_stack=4)
     return env
