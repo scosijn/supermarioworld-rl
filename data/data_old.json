@@ -20,9 +20,13 @@
       "address": 8261054,
       "type": "|i1"
     },
-    "animation": {
-      "address": 113,
+    "powerups": {
+      "address": 25,
       "type": "|i1"
+    },
+    "score": {
+      "address": 8261428,
+      "type": "<u4"
     }
   }
 }

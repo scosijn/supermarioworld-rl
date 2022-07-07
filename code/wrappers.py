@@ -94,11 +94,40 @@ class MarioActionWrapper(gym.ActionWrapper):
 class MarioRewardWrapper(gym.RewardWrapper):
     def __init__(self, env, min_reward=-15, max_reward=15):
         super().__init__(env)
+        self.prev_x_pos = None
+        self.checkpoint = None
         self.min_reward = min_reward
         self.max_reward = max_reward
         self._reward_range = (min_reward, max_reward)
 
-    def reward(self, rew):
+    def reset(self, **kwargs):
+        obs = self.env.reset(**kwargs)
+        self.prev_x_pos = None
+        self.checkpoint = None
+        return obs
+
+    def step(self, action):
+        obs, rew, done, info = self.env.step(action)
+        return obs, self.reward(rew, info), done, info
+
+    def reward(self, rew, info):
+        x_pos = info['x_pos']
+        checkpoint = info['checkpoint']
+        endoflevel = info['endoflevel']
+        is_dying = info['is_dying']
+        if self.prev_x_pos is None:
+            self.prev_x_pos = x_pos
+        if self.checkpoint is None:
+            self.checkpoint = checkpoint
+        rew += x_pos - self.prev_x_pos
+        self.prev_x_pos = x_pos
+        if self.checkpoint == 0 and checkpoint == 1:
+            self.checkpoint = checkpoint
+            rew += (self.max_reward / 2)
+        if endoflevel == 1:
+            rew += self.max_reward
+        if is_dying == 1:
+            rew -= self.max_reward
         return np.clip(rew, self.min_reward, self.max_reward)
 
 
@@ -128,9 +157,37 @@ class MarioRewardWrapper(gym.RewardWrapper):
 #        return obs
 
 
+#class ResetOnLifeLost(gym.Wrapper):
+#    """
+#    Reset the environment when a life is lost.
+#
+#    Args:
+#        env (Gym Environment): the environment to wrap
+#    """
+#
+#    def __init__(self, env):
+#        super().__init__(env)
+#        self.max_lives = -1
+#    
+#    def step(self, action):
+#        obs, reward, done, info = self.env.step(action)
+#        lives = info['lives']
+#        if self.max_lives == -1:
+#            self.max_lives = lives
+#        elif lives < self.max_lives:
+#            done = True
+#            info['lost_life'] = True
+#        return obs, reward, done, info
+#
+#    def reset(self, **kwargs):
+#        obs = self.env.reset(**kwargs)
+#        self.max_lives = -1
+#        return obs
+
+
 class ResetOnLifeLost(gym.Wrapper):
     """
-    Reset the environment when a life is lost.
+    Send done signal when a life is lost.
 
     Args:
         env (Gym Environment): the environment to wrap
@@ -138,21 +195,18 @@ class ResetOnLifeLost(gym.Wrapper):
 
     def __init__(self, env):
         super().__init__(env)
-        self.max_lives = -1
     
     def step(self, action):
         obs, reward, done, info = self.env.step(action)
-        lives = info['lives']
-        if self.max_lives == -1:
-            self.max_lives = lives
-        elif lives < self.max_lives:
+        if info['animation'] == 9:
+            info['is_dying'] = 1
             done = True
+        else:
+            info['is_dying'] = 0
         return obs, reward, done, info
 
     def reset(self, **kwargs):
-        obs = self.env.reset(**kwargs)
-        self.max_lives = -1
-        return obs
+        return self.env.reset(**kwargs)
 
 
 class StickyActions(gym.Wrapper):
@@ -255,7 +309,8 @@ def wrap_env(env):
     env = ResizeObservation(env, shape=(84, 84))
     env = GrayScaleObservation(env, keep_dim=True)
     env = ResetOnLifeLost(env)
-    #env = StickyActions(env, stickiness=0.25)
+    env = StickyActions(env, stickiness=0.25)
     env = FrameSkip(env, n_skip=4)
-    #env = FrameStack(env, n_stack=4)
+    env = FrameStack(env, n_stack=4)
+    env = MarioRewardWrapper(env, min_reward=-15, max_reward=15)
     return env

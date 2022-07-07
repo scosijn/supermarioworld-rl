@@ -17,7 +17,8 @@ def make_retro_env(state, verbose=0):
         info='./data/data.json',
         scenario='./data/scenario.json'
     )
-    env = Monitor(wrap_env(env))
+    env = wrap_env(env)
+    env = Monitor(env)
     check_env(env)
     if verbose > 0:
         print('gamename: {}'.format(env.gamename))
@@ -29,7 +30,7 @@ def make_retro_env(state, verbose=0):
     return env
 
 
-def PPO_model(env):
+def PPO_model(env, log='./tensorboard/'):
     model = PPO(policy='CnnPolicy',
                 env=env,
                 learning_rate=lambda f : f * 2.5e-4,
@@ -40,17 +41,17 @@ def PPO_model(env):
                 clip_range=0.1,
                 gamma=0.99,
                 gae_lambda=0.95,
-                tensorboard_log='./tensorboard/')
+                tensorboard_log=log)
     return model
 
 
-def DQN_model(env):
+def DQN_model(env, log='./tensorboard/'):
     model = DQN(policy='CnnPolicy',
                 env=env,
                 buffer_size=250_000,
                 learning_starts=0,
                 batch_size=4,
-                tensorboard_log='./tensorboard/')
+                tensorboard_log=log)
     return model
 
 
@@ -106,19 +107,13 @@ def random_agent(env, infinite=False):
 
 def main():
     env = make_retro_env('YoshiIsland2')
-    env.reset()
-    for _ in range(100):
-        #obs, rew, done, info = env.step(env.action_space.sample())
-        obs, rew, done, info = env.step([4, 3])
-        print(info)
-        print()
-        if done:
-            env.reset()
-    #model = PPO_model(env)
-    #train_model(model,
-    #            total_timesteps=1000,
-    #            save_freq=0,
-    #            name_prefix='mario_ppo')
+    #model = PPO.load('./models/mario_ppo_20000_steps', env)
+    #test_model(model, env)
+    model = PPO_model(env)
+    train_model(model,
+                total_timesteps=5000,
+                save_freq=5000,
+                name_prefix='mario_ppo')
 
     #model = PPO_model(env)
     #train_model(model,
