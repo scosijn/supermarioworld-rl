@@ -1,5 +1,3 @@
-reward function
-blog post
 hyperparams
+blog post
 gpu
-convert playback to video

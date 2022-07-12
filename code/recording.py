@@ -1,11 +1,12 @@
 import retro
+import gym
 import os
 import glob
 import re
 import time
 
 
-def play_recording(path):
+def _replay(path, render=False, render_delay=0, video_folder=None):
     movie = retro.Movie(path)
     movie.step()
     env = retro.make(
@@ -15,6 +16,8 @@ def play_recording(path):
         players=movie.players
     )
     env.initial_state = movie.get_state()
+    if video_folder is not None:
+        env = gym.wrappers.RecordVideo(env, video_folder, lambda *_: True)
     env.reset()
     while movie.step():
         actions = []
@@ -22,11 +25,21 @@ def play_recording(path):
             for i in range(env.num_buttons):
                 actions.append(movie.get_key(i, p))
         env.step(actions)
-        env.render()
-        time.sleep(0.01)
-    env.render(close=True)
+        if render:
+            env.render()
+            time.sleep(render_delay)
+    if render:
+        env.render(close=True)
     env.close()
     movie.close()
+
+
+def recording_to_video(path, video_folder):
+    _replay(path, video_folder=video_folder)
+
+
+def play_recording(path):
+    _replay(path, render=True, render_delay=0.01)
 
 
 def play_all_recordings(path):

@@ -1,9 +1,7 @@
-import os
 import retro
-import time
 from wrappers import wrap_env
 from callbacks import ProgressBar, SaveCheckpoint
-from recording import play_recording, play_all_recordings
+from recording import play_recording, play_all_recordings, recording_to_video
 from stable_baselines3 import PPO
 from stable_baselines3 import DQN
 from stable_baselines3.common.monitor import Monitor
@@ -60,7 +58,7 @@ def train_model(model, total_timesteps, save_freq, name_prefix='model', verbose=
         save_freq=save_freq,
         name_prefix=name_prefix,
         model_path='./models/',
-        record_path='./playback/',
+        record_path='./recordings/',
         verbose=verbose
     )
     with ProgressBar(
@@ -107,19 +105,11 @@ def random_agent(env, infinite=False):
 
 def main():
     env = make_retro_env('YoshiIsland2')
-    #model = PPO.load('./models/mario_ppo_20000_steps', env)
-    #test_model(model, env)
     model = PPO_model(env)
     train_model(model,
-                total_timesteps=5000,
-                save_freq=5000,
+                total_timesteps=1_000_000,
+                save_freq=100_000,
                 name_prefix='mario_ppo')
-
-    #model = PPO_model(env)
-    #train_model(model,
-    #            total_timesteps=1_000_000,
-    #            save_freq=100_000,
-    #            name_prefix='mario_ppo')
 
 
 if __name__ == '__main__':
