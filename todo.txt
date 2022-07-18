@@ -1,3 +1,0 @@
-hyperparams
-blog post
-gpu
