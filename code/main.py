@@ -1,6 +1,6 @@
 import retro
 from wrappers import wrap_env
-from callbacks import ProgressBar, SaveCheckpoint
+from callbacks import ProgressBar, CheckpointCallback
 from recording import play_recording, play_all_recordings, recording_to_video
 from stable_baselines3 import PPO
 from stable_baselines3 import DQN
@@ -67,7 +67,7 @@ def DQN_model(env, log='./tensorboard/'):
 
 
 def train_model(model, total_timesteps, save_freq, name_prefix='model', verbose=0):
-    checkpoint_callback = SaveCheckpoint(
+    checkpoint_callback = CheckpointCallback(
         save_freq=save_freq,
         name_prefix=name_prefix,
         model_path='./models/',
@@ -146,12 +146,12 @@ def grid_search():
 
 def main():
     env = make_retro_env('YoshiIsland2')
-    model = PPO_model(env)
+    #model = PPO_model(env)
+    model = PPO.load('test_model', env)
     train_model(model,
-                total_timesteps=5000,
-                save_freq=2500,
+                total_timesteps=1000,
+                save_freq=0,
                 name_prefix='mario_ppo')
-    model.save('test_model')
 
 
 if __name__ == '__main__':

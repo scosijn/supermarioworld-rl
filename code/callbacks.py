@@ -3,9 +3,9 @@ from tqdm.auto import tqdm
 from stable_baselines3.common.callbacks import BaseCallback
 
 
-class SaveCheckpoint(BaseCallback):
+class CheckpointCallback(BaseCallback):
     def __init__(self, save_freq, name_prefix, model_path, record_path, verbose=0):
-        super(SaveCheckpoint, self).__init__(verbose=verbose)
+        super().__init__(verbose)
         self.save_freq = save_freq
         self.name_prefix = name_prefix
         self.model_path = model_path
@@ -51,26 +51,26 @@ class SaveCheckpoint(BaseCallback):
 
 
 class ProgressBarCallback(BaseCallback):
-    def __init__(self, prog_bar):
-        super(ProgressBarCallback, self).__init__()
-        self._prog_bar = prog_bar
+    def __init__(self, progress_bar):
+        super().__init__()
+        self._progress_bar = progress_bar
 
     def _on_step(self):
-        self._prog_bar.n = self.num_timesteps
-        self._prog_bar.update(0)
+        self._progress_bar.n = self.num_timesteps
+        self._progress_bar.update(0)
 
 
 class ProgressBar:
     def __init__(self, initial_timesteps, total_timesteps):
-        self.prog_bar = None
+        self.progress_bar = None
         self.initial_timesteps = initial_timesteps
         self.total_timesteps = total_timesteps
     
     def __enter__(self):
-        self.prog_bar = tqdm(initial=self.initial_timesteps, total=self.total_timesteps)
-        return ProgressBarCallback(self.prog_bar)
+        self.progress_bar = tqdm(initial=self.initial_timesteps, total=self.total_timesteps)
+        return ProgressBarCallback(self.progress_bar)
 
     def __exit__(self, type, value, traceback):
-        self.prog_bar.n = self.total_timesteps
-        self.prog_bar.update(0)
-        self.prog_bar.close()
+        self.progress_bar.n = self.total_timesteps
+        self.progress_bar.update(0)
+        self.progress_bar.close()
