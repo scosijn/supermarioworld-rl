@@ -134,7 +134,7 @@ def grid_search():
                             n_epochs=4,
                             clip_range=clip_value,
                             ent_coef=0.01,
-                            seed=123,
+                            seed=42,
                             tensorboard_log='./tensorboard/')
                 train_model(model,
                             total_timesteps=500_000,
@@ -146,6 +146,12 @@ def grid_search():
 
 def main():
     env = make_retro_env('YoshiIsland2')
+    model = PPO_model(env)
+    train_model(model,
+                total_timesteps=5000,
+                save_freq=2500,
+                name_prefix='mario_ppo')
+    model.save('test_model')
 
 
 if __name__ == '__main__':
