@@ -122,26 +122,26 @@ def random_agent(env, infinite=False):
     env.close()
 
 
-#def grid_search():
-#    learning_rate_arr = [1e-4, 1e-5]
-#    n_steps_arr = [128, 512]
-#    grid = itertools.product(learning_rate_arr, n_steps_arr)
-#    for learning_rate, n_steps in grid:
-#                model_name = '_'.join(['lr'+str(learning_rate), 'steps'+str(n_steps)])
+#def grid_search(device):
+#    n_steps_arr = [128, 512, 1024]
+#    batch_size_arr = [4, 64, 256]
+#    grid = itertools.product(n_steps_arr, batch_size_arr)
+#    for n_steps, batch_size in grid:
+#                model_name = '_'.join(['steps'+str(n_steps), 'batch'+str(batch_size)])
+#                print(model_name)
 #                env = make_retro_env('YoshiIsland2')
 #                model = PPO(policy='CnnPolicy',
 #                            env=env,
-#                            learning_rate=learning_rate,
+#                            learning_rate=1e-4,
 #                            n_steps=n_steps,
-#                            batch_size=64,
+#                            batch_size=batch_size,
 #                            ent_coef=0.01,
 #                            seed=42,
-#                            tensorboard_log='./tensorboard/')
+#                            device=device)
 #                train_model(model,
-#                            total_timesteps=500_000,
+#                            total_timesteps=2500,
 #                            save_freq=0,
 #                            name_prefix=model_name)
-#                model.save(model_name)
 #                env.close()
 
 
@@ -149,9 +149,10 @@ def main():
     env = make_retro_env('YoshiIsland2')
     model = PPO_model(env)
     train_model(model,
-                total_timesteps=1e7,
-                save_freq=1e6,
+                total_timesteps=4_000_000,
+                save_freq=500_000,
                 name_prefix='mario_ppo')
+    model.save('./models/mario_ppo_final')
 
 
 if __name__ == '__main__':
