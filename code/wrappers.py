@@ -1,3 +1,4 @@
+from cgitb import reset
 import gym
 import retro
 import itertools
@@ -114,7 +115,7 @@ class MarioRewardWrapper(gym.RewardWrapper):
         x_pos = info['x_pos']
         checkpoint = info['checkpoint']
         endoflevel = info['endoflevel']
-        is_dying = info['is_dying']
+        #is_dying = info['is_dying']
         if self.prev_x_pos is None:
             self.prev_x_pos = x_pos
         if self.checkpoint is None:
@@ -126,8 +127,8 @@ class MarioRewardWrapper(gym.RewardWrapper):
             rew += (self.max_reward / 2)
         if endoflevel == 1:
             rew += self.max_reward
-        if is_dying == 1:
-            rew -= self.max_reward
+        #if is_dying == 1:
+        #    rew -= self.max_reward
         return np.clip(rew, self.min_reward, self.max_reward)
 
 
@@ -302,6 +303,32 @@ class FrameStack(gym.Wrapper):
 
     def _get_obs(self):
         return np.concatenate(self.frames, axis=2)
+
+
+class MarioWrapper(gym.Wrapper):
+    def __init__(
+        self,
+        env,
+        actions=retro.Actions.ALL,
+        screen_size=None,
+        grayscale=False,
+        stickiness=0,
+        n_skip=1,
+        rewards=None
+    ):
+        if actions != retro.Actions.ALL:
+            env = MarioActionWrapper(env, actions)
+        if screen_size is not None:
+            env = ResizeObservation(env, screen_size)
+        if grayscale:
+            env = GrayScaleObservation(env, keep_dim=True)
+        env = ResetOnLifeLost(env)
+        env = StickyActions(env, stickiness)
+        env = FrameSkip(env, n_skip)
+        if rewards is not None:
+            min, max = rewards
+            env = MarioRewardWrapper(env, min_reward=min, max_reward=max)
+        super().__init__(env)
 
 
 def wrap_env(env):
