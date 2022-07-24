@@ -115,7 +115,7 @@ class MarioRewardWrapper(gym.RewardWrapper):
         x_pos = info['x_pos']
         checkpoint = info['checkpoint']
         endoflevel = info['endoflevel']
-        #is_dying = info['is_dying']
+        is_dying = info['is_dying']
         if self.prev_x_pos is None:
             self.prev_x_pos = x_pos
         if self.checkpoint is None:
@@ -127,8 +127,8 @@ class MarioRewardWrapper(gym.RewardWrapper):
             rew += (self.max_reward / 2)
         if endoflevel == 1:
             rew += self.max_reward
-        #if is_dying == 1:
-        #    rew -= self.max_reward
+        if is_dying == 1:
+            rew -= self.max_reward
         return np.clip(rew, self.min_reward, self.max_reward)
 
 
