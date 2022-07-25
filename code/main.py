@@ -1,6 +1,7 @@
 import time
 import retro
 import itertools
+import numpy as np
 from wrappers import wrap_env, MarioWrapper
 from callbacks import ProgressBar, CheckpointCallback
 from recording import play_recording, play_all_recordings, recording_to_video
@@ -109,24 +110,18 @@ def test_model(model, env):
     env.close()
 
 
-def random_agent(env, infinite=False):
+def random_agent(env):
     """
     Agent that will take a random action on each timestep.
 
     Args:
-        env (Gym Environment): the environment
-        infinite (bool): end after a single episode if false
+        env (Gym Environment): the environment #TODO VECENV
     """
     env.reset()
-    done = False
-    while not done:
-        _, _, done, _ = env.step(env.action_space.sample())
+    while True:
+        action = env.action_space.sample()
+        env.step(np.tile(action, (env.num_envs, 1)))
         env.render()
-        if done and infinite:
-            env.reset()
-            done = False
-    env.render(close=True)
-    env.close()
 
 
 def grid_search():
@@ -153,13 +148,14 @@ def grid_search():
 
 
 def main():
-    env = make_retro_env_vec('YoshiIsland2', n_envs=2)
+    env = make_retro_env_vec('YoshiIsland2', n_envs=8)
     model = PPO_model(env)
     train_model(model,
-                total_timestepe=10_000_000,
-                save_freq=1_000_000,
+                total_timesteps=5e6,
+                save_freq=1e6,
                 name_prefix='mario_ppo')
     model.save('./models/mario_ppo_final')
+    env.close()
 
 
 if __name__ == '__main__':
