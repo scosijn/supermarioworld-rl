@@ -93,13 +93,14 @@ class MarioActionWrapper(gym.ActionWrapper):
 
 
 class MarioRewardWrapper(gym.RewardWrapper):
-    def __init__(self, env, min_reward=-15, max_reward=15):
+    def __init__(self, env, min_reward=-15, max_reward=15, penalty=True):
         super().__init__(env)
         self.prev_x_pos = None
         self.checkpoint = None
         self.min_reward = min_reward
         self.max_reward = max_reward
         self._reward_range = (min_reward, max_reward)
+        self.penalty = penalty
 
     def reset(self, **kwargs):
         obs = self.env.reset(**kwargs)
@@ -127,7 +128,7 @@ class MarioRewardWrapper(gym.RewardWrapper):
             rew += (self.max_reward / 2)
         if endoflevel == 1:
             rew += self.max_reward
-        if is_dying == 1:
+        if self.penalty and is_dying == 1:
             rew -= self.max_reward
         return np.clip(rew, self.min_reward, self.max_reward)
 
@@ -314,7 +315,8 @@ class MarioWrapper(gym.Wrapper):
         grayscale=False,
         stickiness=0,
         n_skip=1,
-        rewards=None
+        rewards=None,
+        penalty=True
     ):
         if actions != retro.Actions.ALL:
             env = MarioActionWrapper(env, actions)
@@ -327,7 +329,7 @@ class MarioWrapper(gym.Wrapper):
         env = FrameSkip(env, n_skip)
         if rewards is not None:
             min, max = rewards
-            env = MarioRewardWrapper(env, min_reward=min, max_reward=max)
+            env = MarioRewardWrapper(env, min_reward=min, max_reward=max, penalty=penalty)
         super().__init__(env)
 
 

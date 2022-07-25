@@ -1,4 +1,5 @@
 import time
+from turtle import pen
 import retro
 import itertools
 import numpy as np
@@ -11,7 +12,7 @@ from stable_baselines3.common.vec_env import SubprocVecEnv, VecFrameStack
 from stable_baselines3.common.env_util import make_vec_env
 
 
-def make_retro_env_vec(state, n_envs=1):
+def make_retro_env_vec(state, n_envs=1, penalty=True):
     """
     Args:
         state (str):
@@ -26,7 +27,8 @@ def make_retro_env_vec(state, n_envs=1):
             grayscale=True,
             stickiness=0.25,
             n_skip=4,
-            rewards=(-15, 15)
+            rewards=(-15, 15),
+            penalty=penalty
         )
         env = Monitor(env)
         return env
@@ -151,10 +153,34 @@ def main():
     env = make_retro_env_vec('YoshiIsland2', n_envs=8)
     model = PPO_model(env)
     train_model(model,
-                total_timesteps=5e6,
+                total_timesteps=2.5e6,
                 save_freq=1e6,
-                name_prefix='mario_ppo')
-    model.save('./models/mario_ppo_final')
+                name_prefix='1_mario_ppo')
+    model.save('./models/1_mario_ppo_final')
+    env.close()
+    env = make_retro_env_vec('YoshiIsland2', n_envs=8)
+    model = PPO_model(env)
+    train_model(model,
+                total_timesteps=2.5e6,
+                save_freq=1e6,
+                name_prefix='2_mario_ppo')
+    model.save('./models/2_mario_ppo_final')
+    env.close()
+    env = make_retro_env_vec('YoshiIsland2', n_envs=8, penalty=False)
+    model = PPO_model(env)
+    train_model(model,
+                total_timesteps=2.5e6,
+                save_freq=1e6,
+                name_prefix='3_mario_ppo')
+    model.save('./models/3_mario_ppo_final')
+    env.close()
+    env = make_retro_env_vec('YoshiIsland2', n_envs=8, penalty=False)
+    model = PPO_model(env)
+    train_model(model,
+                total_timesteps=2.5e6,
+                save_freq=1e6,
+                name_prefix='4_mario_ppo')
+    model.save('./models/4_mario_ppo_final')
     env.close()
 
 
