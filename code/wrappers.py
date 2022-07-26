@@ -93,7 +93,7 @@ class MarioActionWrapper(gym.ActionWrapper):
 
 
 class MarioRewardWrapper(gym.RewardWrapper):
-    def __init__(self, env, min_reward=-15, max_reward=15, penalty=True):
+    def __init__(self, env, min_reward=-15, max_reward=15, penalty=False):
         super().__init__(env)
         self.prev_x_pos = None
         self.checkpoint = None
@@ -316,7 +316,7 @@ class MarioWrapper(gym.Wrapper):
         stickiness=0,
         n_skip=1,
         rewards=None,
-        penalty=True
+        penalty=False
     ):
         if actions != retro.Actions.ALL:
             env = MarioActionWrapper(env, actions)
