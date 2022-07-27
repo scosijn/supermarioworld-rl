@@ -1,2 +1,0 @@
-sparse rewards
-reward shaping
