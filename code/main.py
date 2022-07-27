@@ -1,9 +1,8 @@
 import time
-from turtle import pen
 import retro
 import itertools
 import numpy as np
-from wrappers import wrap_env, MarioWrapper
+from wrappers import MarioWrapper
 from callbacks import ProgressBar, CheckpointCallback
 from recording import play_recording, play_all_recordings, recording_to_video
 from stable_baselines3 import PPO
