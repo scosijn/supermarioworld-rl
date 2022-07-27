@@ -12,7 +12,7 @@ from stable_baselines3.common.vec_env import SubprocVecEnv, VecFrameStack
 from stable_baselines3.common.env_util import make_vec_env
 
 
-def make_retro_env_vec(state, n_envs=1, penalty=True):
+def make_retro_env(state, n_envs=1):
     """
     Args:
         state (str):
@@ -48,32 +48,32 @@ def make_retro_env_vec(state, n_envs=1, penalty=True):
     return env
 
 
-def make_retro_env(state, verbose=0):
-    env = retro.RetroEnv(
-        game='SuperMarioWorld-Snes',
-        state=state,
-        info='./data/data.json',
-        scenario='./data/scenario.json'
-    )
-    env = wrap_env(env)
-    env = Monitor(env)
-    if verbose > 0:
-        print('gamename: {}'.format(env.gamename))
-        print('statename: {}'.format(env.statename))
-        print('buttons: {}'.format(env.buttons))
-        print('action_space: {}'.format(env.action_space))
-        print('observation_space: {}'.format(env.observation_space))
-        print('reward_range: {}'.format(env.reward_range))
-    return env
+#def make_retro_env(state, verbose=0):
+#    env = retro.RetroEnv(
+#        game='SuperMarioWorld-Snes',
+#        state=state,
+#        info='./data/data.json',
+#        scenario='./data/scenario.json'
+#    )
+#    env = wrap_env(env)
+#    env = Monitor(env)
+#    if verbose > 0:
+#        print('gamename: {}'.format(env.gamename))
+#        print('statename: {}'.format(env.statename))
+#        print('buttons: {}'.format(env.buttons))
+#        print('action_space: {}'.format(env.action_space))
+#        print('observation_space: {}'.format(env.observation_space))
+#        print('reward_range: {}'.format(env.reward_range))
+#    return env
 
 
 def PPO_model(env, log='./tensorboard/'):
     model = PPO(policy='CnnPolicy',
                 env=env,
-                learning_rate=lambda f: f * 2.5e-4,
-                n_steps=512,
-                batch_size=256,
-                n_epochs=4,
+                learning_rate=lambda f: f * 1e-4,
+                n_steps=1024,
+                batch_size=512,
+                n_epochs=10,
                 clip_range=0.2,
                 ent_coef=0.01,
                 tensorboard_log=log)
@@ -83,9 +83,8 @@ def PPO_model(env, log='./tensorboard/'):
 def train_model(model, total_timesteps, save_freq, name_prefix='model', verbose=0):
     checkpoint_callback = CheckpointCallback(
         save_freq=save_freq,
+        save_path='./models/',
         name_prefix=name_prefix,
-        model_path='./models/',
-        record_path='./recordings/',
         verbose=verbose
     )
     with ProgressBar(
@@ -125,37 +124,40 @@ def random_agent(env):
         env.render()
 
 
-def grid_search():
-    n_steps_arr = [128, 512, 1024]
-    batch_size_arr = [256, 1024]
-    grid = itertools.product(n_steps_arr, batch_size_arr)
-    for n_steps, batch_size in grid:
-        model_name = '_'.join(['n_steps'+str(n_steps), 'batch_size'+str(batch_size)])
-        env = make_retro_env_vec('YoshiIsland2', n_envs=8)
-        model = PPO(policy='CnnPolicy',
-                    env=env,
-                    learning_rate=lambda f: f * 2.5e-4,
-                    n_steps=n_steps,
-                    batch_size=batch_size,
-                    ent_coef=0.01,
-                    seed=42,
-                    tensorboard_log='./tensorboard/')
-        train_model(model,
-                    total_timesteps=500_000,
-                    save_freq=0,
-                    name_prefix=model_name)
-        model.save('./models/' + model_name)
-        env.close()
+#def grid_search():
+#    n_steps_arr = [128, 512, 1024]
+#    batch_size_arr = [256, 1024]
+#    grid = itertools.product(n_steps_arr, batch_size_arr)
+#    for n_steps, batch_size in grid:
+#        model_name = '_'.join(['n_steps'+str(n_steps), 'batch_size'+str(batch_size)])
+#        env = make_retro_env_vec('YoshiIsland2', n_envs=8)
+#        model = PPO(policy='CnnPolicy',
+#                    env=env,
+#                    learning_rate=lambda f: f * 2.5e-4,
+#                    n_steps=n_steps,
+#                    batch_size=batch_size,
+#                    ent_coef=0.01,
+#                    seed=42,
+#                    tensorboard_log='./tensorboard/')
+#        train_model(model,
+#                    total_timesteps=500_000,
+#                    save_freq=0,
+#                    name_prefix=model_name)
+#        model.save('./models/' + model_name)
+#        env.close()
 
 
 def main():
-    env = make_retro_env_vec('YoshiIsland2', n_envs=8)
+    n_envs = 12
+    total_timesteps = 40_000_000
+    save_freq = (0.25 * total_timesteps) // n_envs
+    env = make_retro_env('YoshiIsland2', n_envs=n_envs)
     model = PPO_model(env)
     train_model(model,
-                total_timesteps=20_000_000,
-                save_freq=2_000_000,
-                name_prefix='mario_ppo')
-    model.save('./models/mario_ppo_final')
+                total_timesteps=total_timesteps,
+                save_freq=save_freq,
+                name_prefix='ppo')
+    model.save('./models/ppo_final')
     env.close()
 
 

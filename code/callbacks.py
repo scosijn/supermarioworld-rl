@@ -4,6 +4,29 @@ from stable_baselines3.common.callbacks import BaseCallback
 
 
 class CheckpointCallback(BaseCallback):
+    def __init__(self, save_freq, save_path, name_prefix, verbose=0):
+        super().__init__(verbose)
+        self.save_freq = save_freq
+        self.save_path = save_path
+        self.name_prefix = name_prefix
+
+    def _init_callback(self):
+        if self.save_path is not None:
+            os.makedirs(self.save_path, exist_ok=True)
+
+    def _on_step(self):
+        if self.save_freq > 0 and self.n_calls % self.save_freq == 0:
+            path = os.path.join(
+                self.save_path,
+                f'{self.name_prefix}_{self.num_timesteps}_steps'
+            )
+            if self.verbose > 0:
+                print(f'\nsaving model to {path}')
+            self.model.save(path)
+        return True
+
+
+class CheckpointCallback2(BaseCallback):
     def __init__(self, save_freq, name_prefix, model_path, record_path, verbose=0):
         super().__init__(verbose)
         self.save_freq = save_freq
