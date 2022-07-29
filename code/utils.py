@@ -4,6 +4,8 @@ import os
 import glob
 import re
 import time
+import pandas as pd
+import matplotlib.pyplot as plt
 
 
 def _replay(path, render=False, render_delay=0, video_folder=None):
@@ -47,3 +49,13 @@ def play_all_recordings(path):
     for file_path in sorted(files, key=lambda x:int(re.findall('(\d+)',x)[0])):
         print(f'playing {file_path}')
         play_recording(file_path)
+        
+
+def plot_rollout(path):
+    df = pd.read_csv(path)
+    plt.plot(df['Step'], df['Value'])
+    plt.plot(df['Step'], df['Value'].ewm(span=0.1*len(df)).mean())
+    plt.xlabel('Timestep')
+    plt.ylabel('Score')
+    plt.title('PPO_YoshiIsland2')
+    plt.show()

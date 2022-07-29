@@ -4,7 +4,7 @@ import itertools
 import numpy as np
 from wrappers import MarioWrapper
 from callbacks import ProgressBar, CheckpointCallback
-from recording import play_recording, play_all_recordings, recording_to_video
+from utils import plot_rollout
 from stable_baselines3 import PPO
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.vec_env import SubprocVecEnv, VecFrameStack
@@ -72,7 +72,7 @@ def PPO_model(env, log='./tensorboard/'):
                 learning_rate=lambda f: f * 1e-4,
                 n_steps=1024,
                 batch_size=512,
-                n_epochs=10,
+                n_epochs=4,
                 clip_range=0.2,
                 ent_coef=0.01,
                 tensorboard_log=log)
