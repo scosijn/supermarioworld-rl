@@ -147,16 +147,17 @@ def random_agent(env):
 
 
 def main():
-    n_envs = 12
-    total_timesteps = 40_000_000
-    save_freq = (0.25 * total_timesteps) // n_envs
-    env = make_retro_env('YoshiIsland2', n_envs=n_envs)
-    model = PPO_model(env)
+    n_envs = 8 
+    total_timesteps = 25_000_000
+    save_freq = (0.1 * total_timesteps) // n_envs
+    env = make_retro_env('YoshiIsland1', n_envs=n_envs)
+    model = PPO.load('./models/ppo_final')
+    model.set_env(env)
     train_model(model,
                 total_timesteps=total_timesteps,
                 save_freq=save_freq,
-                name_prefix='ppo')
-    model.save('./models/ppo_final')
+                name_prefix='ppo2')
+    model.save('./models/ppo2_final')
     env.close()
 
 
