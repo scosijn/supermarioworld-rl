@@ -15,7 +15,7 @@
     \section{Introduction}
     \begin{figure}[H]
         \centering
-        \includegraphics[width=.85\textwidth]{start-screen}
+        \includegraphics[width=0.85\textwidth]{start-screen}
     \end{figure}
     \begin{itemize}
         \item Super Mario World (SNES)
@@ -26,8 +26,8 @@
     Reinforcement learning loop
     \begin{figure}[H]
         \centering
-        \includegraphics[width=0.95\textwidth]{loop}
-        \caption{\textbf{Source:} Reinforcement Learning: An Introduction}
+        \includegraphics[width=0.65\textwidth]{AE_loop}
+        \caption{\textbf{Source:} \url{https://www.gymlibrary.ml/_images/AE_loop.png}}
         \label{fig:loop}
     \end{figure}
     \begin{itemize}
@@ -113,8 +113,7 @@
         \item Prevent agent getting stuck in game menu
     \end{itemize}
 
-    \section{Model}
-    \subsection{Reward Shaping}
+    \section{Reward Shaping}
     \begin{itemize}
         \item ideal reward = +1 level complete (too sparse)
         \item end of level is always on the right side
@@ -145,18 +144,18 @@
 
     total reward is clipped between 'min reward' and 'max reward' (default -15, 15)
 
-    \subsection{Algorithm}
+    \section{Algorithm}
     \begin{itemize}
         \item Proximal Policy Optimization (PPO)
         \item Policy based algorithm
         \item Stable Baselines library\footnote{\url{https://github.com/DLR-RM/stable-baselines3}}
     \end{itemize}
-    \subsubsection{Hyperparameters}
+    \subsection{Hyperparameters}
     \begin{itemize}
-        \item learning\_rate = lambda $f$: $f * 2.5e^{-4}$
-        \item n\_steps = 512
-        \item batch\_size = 256
-        \item n\_epochs = 4
+        \item learning\_rate = lambda $f$: $f * 1e^{-4}$
+        \item n\_steps = 1024
+        \item batch\_size = 512
+        \item n\_epochs = 10
         \item gamma = 0.99
         \item gae\_lambda = 0.95
         \item clip\_range = 0.2
@@ -164,8 +163,12 @@
         \item vf\_coef = 0.5
         \item max\_grad\_norm = 0.5
     \end{itemize}
-    \section{Training}
-    Trained for $x$ timesteps on $n$ environments simultaneously.
-
-    \section{Results}
+    \section{Training \& Results}
+    \subsection{Model A}
+    Trained for 25 million time steps on the level 'YoshiIsland2'.
+    Most basic level (avoid enemies, jump over pit).
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=\textwidth]{plot_model_a.png}
+    \end{figure}
 \end{document}
