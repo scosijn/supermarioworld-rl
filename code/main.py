@@ -79,7 +79,17 @@ def PPO_model(env, log='./tensorboard/'):
     return model
 
 
-def train_model(model, total_timesteps, save_freq, name_prefix='model', verbose=0):
+def train_model(
+    model,
+    total_timesteps,
+    save_freq=0,
+    name_prefix='model',
+    reset_num_timesteps=False,
+    verbose=0
+):
+    initial_timesteps = model.num_timesteps
+    if reset_num_timesteps:
+        initial_timesteps = 0
     checkpoint_callback = CheckpointCallback(
         save_freq=save_freq,
         save_path='./models/',
@@ -87,12 +97,12 @@ def train_model(model, total_timesteps, save_freq, name_prefix='model', verbose=
         verbose=verbose
     )
     with ProgressBar(
-        model.num_timesteps,
-        model.num_timesteps + total_timesteps
+        initial_timesteps,
+        initial_timesteps + total_timesteps
     ) as progress_callback:
         model.learn(
             total_timesteps,
-            reset_num_timesteps=False,
+            reset_num_timesteps=reset_num_timesteps,
             tb_log_name=name_prefix,
             callback=[checkpoint_callback, progress_callback]
         )
@@ -147,18 +157,20 @@ def random_agent(env):
 
 
 def main():
-    n_envs = 8 
-    total_timesteps = 25_000_000
-    save_freq = (0.1 * total_timesteps) // n_envs
-    env = make_retro_env('YoshiIsland1', n_envs=n_envs)
-    model = PPO.load('./models/ppo_final')
-    model.set_env(env)
-    train_model(model,
-                total_timesteps=total_timesteps,
-                save_freq=save_freq,
-                name_prefix='ppo2')
-    model.save('./models/ppo2_final')
-    env.close()
+    pass
+    #n_envs = 8 
+    #total_timesteps = 25_000_000
+    #save_freq = (0.1 * total_timesteps) // n_envs
+    #env = make_retro_env('YoshiIsland1', n_envs=n_envs)
+    #model = PPO.load('./models/ppo_final')
+    #model.set_env(env)
+    #train_model(model,
+    #            total_timesteps=total_timesteps,
+    #            save_freq=save_freq,
+    #            name_prefix='ppo2',
+    #            reset_num_timesteps=True)
+    #model.save('./models/ppo2_final')
+    #env.close()
 
 
 if __name__ == '__main__':
