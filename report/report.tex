@@ -23,6 +23,8 @@
         \item OpenAI Gym\footnote{\url{https://github.com/openai/gym}} - RL library
         \item Gym Retro\footnote{\url{https://github.com/openai/retro/}} - Game integration for Gym
     \end{itemize}
+
+    \section{Reinforcement Learning}
     Reinforcement learning loop
     \begin{figure}[H]
         \centering
@@ -37,17 +39,30 @@
         \item state = current frame
         \item reward = decide if action was good
     \end{itemize}
+    In this case an action means pressing buttons on the controller.
+    The observation is the next frame of the game after the action has been executed.
+    The reward is based on how good or bad the effect of the action was on the environment according to the reward function.
 
     \section{Goals}
     \begin{itemize}
         \item Train an agent to complete level(s) of the game
         \item Test agent on unseen levels
     \end{itemize}
+    The goal is to train an agent to complete level(s) of the game.
+    Look at how the agent learns to deal with obstacles presented by the game.
+    Test the agent on new/unseen data (in the form of levels the agent hasn't trained on).
 
     \section{Preprocessing}
-    Based on 'Revisiting the Arcade Learning Environment'.
-    Wrappers around the Gym environment.
+    Most of the preprocessing steps are based on the papers 'The Arcade Learning Environment'/'Revisiting the Arcade Learning Environment', adapted to the game Super Mario World.
+    \begin{itemize}
+        \item benchmark for reinforcement learning
+        \item atari games
+    \end{itemize}
+    These steps are implemented in the form of wrappers around the Gym environment.
     \subsection{Action Space}
+    One button of each cluster can be pressed at the same time.
+    Two discrete action spaces with 5 and 4 actions.
+    $MultiDiscrete([5,4])$ with $5*4=20$ possible combination.
     \begin{itemize}
         \item movement keys: none, left, right, down, up
         \item special keys: none, A (spin), B (jump), X = Y (run)
@@ -113,7 +128,7 @@
         \item Prevent agent getting stuck in game menu
     \end{itemize}
 
-    \section{Reward Shaping}
+    \section{Reward Function}
     \begin{itemize}
         \item ideal reward = +1 level complete (too sparse)
         \item end of level is always on the right side
@@ -134,7 +149,6 @@
         \item moving left $\Leftrightarrow$ $v < 0$
         \item not moving $\Leftrightarrow$ $v = 0$
     \end{itemize}
-
     bonus:
     \begin{itemize}
         \item bonus of 'max reward'/2 for reaching checkpoint
@@ -145,6 +159,11 @@
     total reward is clipped between 'min reward' and 'max reward' (default -15, 15)
 
     \section{Algorithm}
+    \begin{itemize}
+        \item Model-Free RL vs Model-Based RL
+        \item Policy Optimization vs Q-Learning
+    \end{itemize}
+    PPO:
     \begin{itemize}
         \item Proximal Policy Optimization (PPO)
         \item Policy based algorithm
@@ -163,6 +182,7 @@
         \item vf\_coef = 0.5
         \item max\_grad\_norm = 0.5
     \end{itemize}
+
     \section{Training \& Results}
     \subsection{Model A}
     Trained for 25 million time steps on the level 'YoshiIsland2'.
