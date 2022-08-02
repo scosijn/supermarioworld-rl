@@ -47,25 +47,6 @@ def make_retro_env(state, n_envs=1):
     return env
 
 
-#def make_retro_env(state, verbose=0):
-#    env = retro.RetroEnv(
-#        game='SuperMarioWorld-Snes',
-#        state=state,
-#        info='./data/data.json',
-#        scenario='./data/scenario.json'
-#    )
-#    env = wrap_env(env)
-#    env = Monitor(env)
-#    if verbose > 0:
-#        print('gamename: {}'.format(env.gamename))
-#        print('statename: {}'.format(env.statename))
-#        print('buttons: {}'.format(env.buttons))
-#        print('action_space: {}'.format(env.action_space))
-#        print('observation_space: {}'.format(env.observation_space))
-#        print('reward_range: {}'.format(env.reward_range))
-#    return env
-
-
 def PPO_model(env, log='./tensorboard/'):
     model = PPO(policy='CnnPolicy',
                 env=env,
@@ -73,8 +54,8 @@ def PPO_model(env, log='./tensorboard/'):
                 n_steps=1024,
                 batch_size=1024,
                 n_epochs=2,
-                clip_range=0.2,
-                ent_coef=0.01,
+                clip_range=0.1,
+                ent_coef=0.001,
                 tensorboard_log=log)
     return model
 
@@ -159,19 +140,17 @@ def grid_search():
 
 
 def main():
-    grid_search()
-    #n_envs = 8
-    #total_timesteps = 25_000_000
-    #save_freq = (0.2 * total_timesteps) // n_envs
-    #env = make_retro_env('YoshiIsland1', n_envs=n_envs)
-    #model = PPO_model(env)
-    #train_model(model,
-    #            total_timesteps=total_timesteps,
-    #            save_freq=save_freq,
-    #            name_prefix='PPO_YoshiIsland1',
-    #            reset_num_timesteps=False)
-    #model.save('./models/PPO_YoshiIsland1_final')
-    #env.close()
+    n_envs = 8
+    total_timesteps = 25_000_000
+    save_freq = (0.2 * total_timesteps) // n_envs
+    env = make_retro_env('YoshiIsland1', n_envs=n_envs)
+    model = PPO_model(env)
+    train_model(model,
+                total_timesteps=total_timesteps,
+                save_freq=save_freq,
+                name_prefix='PPO_YoshiIsland1')
+    model.save('./models/PPO_YoshiIsland1')
+    env.close()
 
 
 if __name__ == '__main__':
