@@ -112,24 +112,26 @@ class MarioRewardWrapper(gym.RewardWrapper):
         return obs, self.reward(rew, info), done, info
 
     def reward(self, rew, info):
+        rew = -1
         x_pos = info['x_pos']
-        checkpoint = info['checkpoint']
-        endoflevel = info['endoflevel']
+        #checkpoint = info['checkpoint']
+        #endoflevel = info['endoflevel']
         #is_dying = info['is_dying']
         if self.prev_x_pos is None:
             self.prev_x_pos = x_pos
-        if self.checkpoint is None:
-            self.checkpoint = checkpoint
+        #if self.checkpoint is None:
+            #self.checkpoint = checkpoint
         rew += x_pos - self.prev_x_pos
         self.prev_x_pos = x_pos
-        if self.checkpoint == 0 and checkpoint == 1:
-            self.checkpoint = checkpoint
-            rew += (self.max_reward / 2)
-        if endoflevel == 1:
-            rew += self.max_reward
+        #if self.checkpoint == 0 and checkpoint == 1:
+            #self.checkpoint = checkpoint
+            #rew += (self.max_reward / 2)
+        #if endoflevel == 1:
+            #rew += self.max_reward
         #if is_dying == 1:
         #    rew -= self.max_reward
-        return np.clip(rew, self.min_reward, self.max_reward)
+        #return np.clip(rew, self.min_reward, self.max_reward)
+        return rew
 
 
 #class RandomStart(gym.Wrapper):
