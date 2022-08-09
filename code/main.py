@@ -50,13 +50,11 @@ def make_retro_env(state, n_envs=1):
 def PPO_model(env, log='./tensorboard/'):
     model = PPO(policy='CnnPolicy',
                 env=env,
-                #learning_rate=lambda f: f * 2.5e-4,
-                learning_rate=1e-5,
-                n_steps=1024,
-                batch_size=1024,
+                learning_rate=1e-4,
+                n_steps=512,
+                batch_size=512,
                 n_epochs=2,
-                #clip_range=0.1,
-                clip_range=0.2,
+                clip_range=0.1,
                 ent_coef=0.001,
                 tensorboard_log=log)
     return model
@@ -145,13 +143,15 @@ def main():
     n_envs = 8
     total_timesteps = 25_000_000
     save_freq = (0.2 * total_timesteps) // n_envs
-    env = make_retro_env('YoshiIsland2', n_envs=n_envs)
-    model = PPO_model(env)
+    env = make_retro_env('YoshiIsland3', n_envs=n_envs)
+    model = PPO.load('./models/PPO_YoshiIsland2_2')
+    model.set_env(env)
     train_model(model,
                 total_timesteps=total_timesteps,
                 save_freq=save_freq,
-                name_prefix='PPO_YoshiIsland2')
-    model.save('./models/PPO_YoshiIsland2')
+                name_prefix='PPO_YoshiIsland3',
+                reset_num_timesteps=True)
+    model.save('./models/PPO_YoshiIsland3')
     env.close()
 
 
