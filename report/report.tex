@@ -1,35 +1,61 @@
 \documentclass{article}
+\usepackage[a4paper]{geometry}
 \usepackage[utf8]{inputenc}
 \usepackage{hyperref}
 \usepackage{float}
 \usepackage{graphicx}
 \usepackage{caption}
 \usepackage{subcaption}
+\usepackage[us,nodayofweek]{datetime}
+\usepackage[style=alphabetic,maxbibnames=99,giveninits]{biblatex}
+\addbibresource{references.bib}
 \graphicspath{{./images/}}
 
 \title{Super Mario World AI}
 \author{Siebren Cosijn}
+\newdate{date}{31}{08}{2022}
+\date{\displaydate{date}}
 \begin{document}
     \maketitle
 
     \section{Introduction}
     \begin{figure}[H]
         \centering
-        \includegraphics[width=0.85\textwidth]{start-screen}
+        \includegraphics[width=0.75\textwidth]{start-screen}
     \end{figure}
+    My graduate work is based on the popular game ``Super Mario World''.
+    Super Mario is a game that was developed by Nintendo for their SNES\footnote{Super Nintendo Entertainment System}.
+    The aim of the game is to complete a number of levels by reaching the “goalpost" for each level.
+    During each level, which consists of different worlds, obstacles and enemies must be avoided and eliminated.
+    The player has a console to control the game.
+    Very simply said, the intention during this graduate work is to replace the player and console with an AI model.
+
+    For the elaboration of this work I have used the following components and techniques.
     \begin{itemize}
-        \item Super Mario World (SNES)
         \item Reinforcement learning
-        \item OpenAI Gym\footnote{\url{https://github.com/openai/gym}} - RL library
+        \item OpenAI Gym\footnote{\url{https://github.com/openai/gym}} \cite{brockman2016openai} - RL library
         \item Gym Retro\footnote{\url{https://github.com/openai/retro/}} - Game integration for Gym
     \end{itemize}
+    These different components are discussed in more detail later in this document.
+
+    \section{Goals}
+    The ultimate goal of this project is to train an agent so that he can complete some levels of Super Mario World.
+    The aim is to make the agent learn and deal with the obstacles presented in the game.
+    Obstacles can consist of obstacles or enemies that must be defeated or dodged.
+    \begin{itemize}
+        \item Train an agent to complete level(s) of the game
+        \item Test agent on unseen levels
+    \end{itemize}
+    The goal is to train an agent to complete level(s) of the game.
+    Look at how the agent learns to deal with obstacles presented by the game.
+    Test the agent on new/unseen data (in the form of levels the agent hasn't trained on).
 
     \section{Reinforcement Learning}
     Reinforcement learning loop
     \begin{figure}[H]
         \centering
-        \includegraphics[width=0.65\textwidth]{AE_loop}
-        \caption{\textbf{Source:} \url{https://www.gymlibrary.ml/_images/AE_loop.png}}
+        \includegraphics[width=0.6\textwidth]{AE_loop}
+        \caption{The agent-environment loop. \textbf{Source:} \url{https://www.gymlibrary.ml/_images/AE_loop.png}}
         \label{fig:loop}
     \end{figure}
     \begin{itemize}
@@ -43,55 +69,55 @@
     The observation is the next frame of the game after the action has been executed.
     The reward is based on how good or bad the effect of the action was on the environment according to the reward function.
 
-    \section{Goals}
-    \begin{itemize}
-        \item Train an agent to complete level(s) of the game
-        \item Test agent on unseen levels
-    \end{itemize}
-    The goal is to train an agent to complete level(s) of the game.
-    Look at how the agent learns to deal with obstacles presented by the game.
-    Test the agent on new/unseen data (in the form of levels the agent hasn't trained on).
-
     \section{Preprocessing}
-    Most of the preprocessing steps are based on the papers 'The Arcade Learning Environment'/'Revisiting the Arcade Learning Environment', adapted to the game Super Mario World.
-    \begin{itemize}
-        \item benchmark for reinforcement learning
-        \item atari games
-    \end{itemize}
-    These steps are implemented in the form of wrappers around the Gym environment.
+    Before we can train our agent a number of preprocessing steps are necessary.
+    This includes a transformation of both the action and observation space.
+    Most of these steps are based on papers discussing the Arcade Learning Environment (ALE) \cite{bellemare2013arcade,machado2018revisiting}.
+    The ALE is a framework that allows people to develop AI agents for Atari\footnote{Atari 2600, originally known as Atari VCS (Video Computer System)} games and is commonly used to benchmark reinforcement learning algorithms.
+    Even though the ALE was created for Atari games, most of the preprocessing steps used are also applicable to the SNES (and Super Mario World).
+    The following steps are implemented as wrappers around the Gym environment.
     \subsection{Action Space}
+    By default, the gym retro environment for Super Mario World uses a MultiBinary\footnote{\url{https://www.gymlibrary.ml/content/spaces/\#multibinary}} space with 12 elements (buttons).
+    Each actions contains a value for every button in the action space where 0 (not pressed) or 1 (pressed). This results in $2^{12}=4096$ possible combinations.
+    Sticking to the default MultiBinary action space creates three problems:
+    \begin{itemize}
+        \item Large action space: agent takes longer to find good actions during exploration
+        \item Invalid combinations: some combinations of key presses are invalid (i.e. left and right at the same time)
+        \item Useless buttons: some buttons are used to control the game menu or pause the game and have no effect on the actual gameplay
+    \end{itemize}
+    \textbf{TODO.}
     One button of each cluster can be pressed at the same time.
-    Two discrete action spaces with 5 and 4 actions.
-    $MultiDiscrete([5,4])$ with $5*4=20$ possible combination.
+    Two discrete action spaces with respectively 5 and 4 actions.
+    MultiDiscrete\footnote{\url{https://www.gymlibrary.ml/content/spaces/\#multidiscrete}} action space.
     \begin{itemize}
         \item movement keys: none, left, right, down, up
         \item special keys: none, A (spin), B (jump), X = Y (run)
-        \item multi-discrete space (max 1 of each)
-        \item $5*4=20$ actions
+        \item $5*4=20$ valid actions 
     \end{itemize}
     \begin{figure}[H]
         \centering
-        \includegraphics[width=.85\textwidth]{snes-controller-annot}
+        \includegraphics[width=.75\textwidth]{snes-controller-annot}
+        \caption{SNES controller}
+        \label{fig:snes-controller}
     \end{figure}
     \subsection{Observation Space}
     \subsubsection{Transform observation}
-    \begin{itemize}
-        \item 84x84 pixels
-        \item Grayscale
-        \item Reduced memory requirement
-    \end{itemize}
+    To reduce the memory requirement, each observation is rescaled from 256x224 pixels to 84x84 pixels.
+    The color is also converted to grayscale.
+    Figure \ref{fig:transformation} shows the result of this transformation.
+    Lowering the memory requirement significantly reduces the training time of the agent.
     %TODO fix axes
     \begin{figure}[H]
         \centering
         \begin{subfigure}{.5\textwidth}
             \centering
-            \includegraphics[height=5cm]{original_crop}
+            \includegraphics[height=6cm]{original_crop}
             \caption{Original}
             \label{fig:sub1}
         \end{subfigure}%
         \begin{subfigure}{.5\textwidth}
             \centering
-            \includegraphics[height=3cm]{grayscale_crop}
+            \includegraphics[height=6cm]{grayscale_crop}
             \caption{Transformed}
             \label{fig:sub2}
         \end{subfigure}
@@ -99,20 +125,20 @@
         \label{fig:transformation}
     \end{figure}
     \subsubsection{Skip frames}
-    \begin{itemize}
-        \item Very little change from frame to frame
-        \item Repeat action over 4 frames, sum rewards
-        \item Reduced training time
-    \end{itemize}
+    SNES games run at 60 FPS (frames per second), which means there is very little change from frame to frame.
+    As such, it is unnecessary to input an action each frame (also human players do not press 60 buttons each second).
+    To create the effect of ``skipping'' frames we repeat each action over four frames and sum the accumulated rewards.
+    This can be seen as the equivalent of a human player holding the button for a few frames.
+    This change brings the agent closer to human behaviour and as an additional bonus speeds up the training of the agent.
     \subsubsection{Stack frames}
-    \begin{itemize}
-        \item Use 4 subsequent observations for training
-        \item Direction of movement
-        \item Velocity
-    \end{itemize}
+    The agent is trained on pixels, so each observation can be seen as some sort of screenshot of the game state.
+    By using a single frame, the agent cannot perceive the direction or velocity of movement (is Mario going up or down?).
+    To solve this we ``stack'' four subsequent observations on top of each other and use the resulting observation for training.
+    Each observation is placed in a queue and concatenated with the previous three most recent observations.
+    On figure \textbf{TODO: refer to figure by label} we can see based on the last four observations that Mario is jumping to the right.
     \begin{figure}[H]
         \centering
-        \includegraphics[width=.85\textwidth]{stacked}
+        \includegraphics[width=.6\textwidth]{stacked}
     \end{figure}
     \subsection{Other}
     \subsubsection{Sticky Actions}
@@ -128,7 +154,7 @@
         \item Prevent agent getting stuck in game menu
     \end{itemize}
 
-    \section{Reward Function}
+    \section{Reward Shaping}
     \begin{itemize}
         \item ideal reward = +1 level complete (too sparse)
         \item end of level is always on the right side
@@ -165,22 +191,19 @@
     \end{itemize}
     PPO:
     \begin{itemize}
-        \item Proximal Policy Optimization (PPO)
+        \item Proximal Policy Optimization (PPO)\cite{schulman2017proximal}
         \item Policy based algorithm
         \item Stable Baselines library\footnote{\url{https://github.com/DLR-RM/stable-baselines3}}
     \end{itemize}
     \subsection{Hyperparameters}
+    The following hyperparameters for PPO were used to train the agent.
     \begin{itemize}
-        \item learning\_rate = lambda $f$: $f * 1e^{-4}$
-        \item n\_steps = 1024
+        \item learning\_rate = $1e^{-4}$
+        \item n\_steps = 512
         \item batch\_size = 512
-        \item n\_epochs = 10
-        \item gamma = 0.99
-        \item gae\_lambda = 0.95
-        \item clip\_range = 0.2
-        \item ent\_coef = 0.01
-        \item vf\_coef = 0.5
-        \item max\_grad\_norm = 0.5
+        \item n\_epochs = 2
+        \item clip\_range = 0.1
+        \item ent\_coef = 0.001
     \end{itemize}
 
     \section{Training \& Results}
@@ -191,4 +214,6 @@
         \centering
         \includegraphics[width=\textwidth]{plot_model_a.png}
     \end{figure}
+
+    \printbibliography
 \end{document}
