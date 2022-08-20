@@ -8,6 +8,10 @@ report/report.log
 report/report.out
 report/report.pdf
 report/report.synctex.gz
+report/report.bbl
+report/report.bcf
+report/report.blg
+report/report.run.xml
 presentation/presentation.aux
 presentation/presentation.fdb_latexmk
 presentation/presentation.fls
