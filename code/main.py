@@ -142,16 +142,16 @@ def grid_search():
 def main():
     n_envs = 8
     total_timesteps = 25_000_000
-    save_freq = (0.2 * total_timesteps) // n_envs
+    save_freq = 0 #(0.2 * total_timesteps) // n_envs
     env = make_retro_env('YoshiIsland3', n_envs=n_envs)
-    model = PPO.load('./models/PPO_YoshiIsland2_2')
+    #model = PPO_model(env)
+    model = PPO.load('./models/PPO_YoshiIsland3_1')
     model.set_env(env)
     train_model(model,
                 total_timesteps=total_timesteps,
                 save_freq=save_freq,
-                name_prefix='PPO_YoshiIsland3',
-                reset_num_timesteps=True)
-    model.save('./models/PPO_YoshiIsland3')
+                name_prefix='PPO_YoshiIsland3_2')
+    model.save('./models/PPO_YoshiIsland3_2')
     env.close()
 
 

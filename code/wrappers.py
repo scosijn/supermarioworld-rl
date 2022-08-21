@@ -96,6 +96,7 @@ class MarioRewardWrapper(gym.RewardWrapper):
     def __init__(self, env, min_reward=-15, max_reward=15):
         super().__init__(env)
         self.prev_x_pos = None
+        self.prev_y_pos = None
         self.checkpoint = None
         self.min_reward = min_reward
         self.max_reward = max_reward
@@ -104,6 +105,7 @@ class MarioRewardWrapper(gym.RewardWrapper):
     def reset(self, **kwargs):
         obs = self.env.reset(**kwargs)
         self.prev_x_pos = None
+        self.prev_y_pos = None
         self.checkpoint = None
         return obs
 
@@ -112,17 +114,22 @@ class MarioRewardWrapper(gym.RewardWrapper):
         return obs, self.reward(rew, info), done, info
 
     def reward(self, rew, info):
-        rew = -1
+        rew = -0.5
         x_pos = info['x_pos']
+        y_pos = info['y_pos']
         #checkpoint = info['checkpoint']
         #endoflevel = info['endoflevel']
         #is_dying = info['is_dying']
         if self.prev_x_pos is None:
             self.prev_x_pos = x_pos
+        if self.prev_y_pos is None:
+            self.prev_y_pos = y_pos
         #if self.checkpoint is None:
             #self.checkpoint = checkpoint
-        rew += x_pos - self.prev_x_pos
+        rew += np.sign(x_pos - self.prev_x_pos)/2
         self.prev_x_pos = x_pos
+        rew += np.sign(-1 * (y_pos - self.prev_y_pos))
+        self.prev_y_pos = y_pos
         #if self.checkpoint == 0 and checkpoint == 1:
             #self.checkpoint = checkpoint
             #rew += (self.max_reward / 2)
