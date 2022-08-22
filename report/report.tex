@@ -7,10 +7,20 @@
 \usepackage{caption}
 \usepackage{subcaption}
 \usepackage{xcolor}
+\usepackage{amsmath}
 \usepackage[us,nodayofweek]{datetime}
 \usepackage[style=alphabetic,maxbibnames=99,giveninits]{biblatex}
 \addbibresource{references.bib}
 \graphicspath{{./images/}}
+\newcommand*{\img}[1]{%
+    \raisebox{-.25\baselineskip}{%
+        \includegraphics[
+        height=\baselineskip,
+        width=\baselineskip,
+        keepaspectratio,
+        ]{#1}%
+    }%
+}
 
 \title{Super Mario World AI}
 \author{Siebren Cosijn}
@@ -73,6 +83,15 @@ In this case an action means pressing buttons on the controller.
 The observation is the next frame of the game after the action has been executed.
 The reward is based on how good or bad the effect of the action was on the environment according to the reward function.
 
+``The main characters of RL are the agent and the environment.
+The environment is the world that the agent lives in and interacts with.
+At every step of interaction, the agent sees a (possibly partial) observation of the state of the world, and then decides on an action to take.
+The environment changes when the agent acts on it, but may also change on its own.
+
+The agent also perceives a reward signal from the environment, a number that tells it how good or bad the current world state is.
+The goal of the agent is to maximize its cumulative reward, called return.
+Reinforcement learning methods are ways that the agent can learn behaviors to achieve its goal.''
+
 \section{Preprocessing}
 Before we can train our agent a number of preprocessing steps are necessary.
 This includes a transformation of both the action and observation space.
@@ -90,8 +109,8 @@ Sticking to the default MultiBinary action space leads to three issues:
         Exploration in reinforcement learning relies on some form of random sampling.
         If the action space is large, it will take longer for the agent to find good actions during exploration.
     \item \emph{Invalid combinations.}
-        Some combinations of buttons cannot be pressed at the same time (i.e. left and right arrows).
-    \item \emph{Irrelevant buttons.} Some buttons are only used to control the game menu or pause the game (select, start, ...) and have no effect on the actual gameplay.
+        Some combinations of buttons cannot be pressed at the same time (e.g. left and right arrows).
+    \item \emph{Irrelevant buttons.} Some buttons are only used to control the game menu or pause the game and have no effect on the actual gameplay.
 \end{itemize}
 To solve these problems we take a look at the SNES controller in figure \ref{fig:snes-controller}.
 The game was designed to be played on this controller, so the buttons used in Gym Retro correspond to the buttons on this controller.
@@ -100,11 +119,11 @@ The remaining buttons can be split into two clusters, arrow keys and special key
 For each cluster, only one button can be pressed at any given time.
 This translates to a MultiDiscrete\footnote{\url{https://www.gymlibrary.ml/content/spaces/\#multidiscrete}} action space, which is the cartesian product of (in this case two) discrete spaces.
 The actions of both discrete spaces are described below.
-In this game the X and Y key serve the same function, so we only need to include one of them.
+In this game the \img{SuperNintendo-Button-X} and \img{SuperNintendo-Button-Y} keys serve the same function, so we only need to include one of them.
 Not pressing a button is also a valid action.
 \begin{itemize}
-    \item \emph{Arrow keys.} none, left, right, up, down
-    \item \emph{Special keys.} none, A (spin), B (jump), X (run/interact)
+    \item \emph{Arrow keys.} none, left (\img{SuperNintendo-Dpad-Left}), right (\img{SuperNintendo-Dpad-Right}), up (\img{SuperNintendo-Dpad-Up}), down (\img{SuperNintendo-Dpad-Down})
+    \item \emph{Special keys.} none, spin (\img{SuperNintendo-Button-A}), jump (\img{SuperNintendo-Button-B}), run/interact (\img{SuperNintendo-Button-X})
 \end{itemize}
 \begin{figure}[ht]
     \centering
@@ -148,7 +167,7 @@ On figure \ref{fig:stack} we can see based on the last four observations that Ma
 \begin{figure}[ht]
     \centering
     \includegraphics[width=.6\textwidth]{stacked}
-    \caption{Stacking 4 subsequent observations}
+    \caption{Stacking four subsequent observations}
     \label{fig:stack}
 \end{figure}
 
@@ -165,7 +184,7 @@ This change brings the agent closer to human behaviour and as an additional bonu
 Super Mario World is deterministic. 
 Enemies and other moving objects will always appear in the same location at the same timestamp of a level.
 We want the AI to learn a policy that will work on other levels, not just memorize one action sequence in a single level, so we need to introduce some form of stochasticity.
-With ``sticky actions'' each time the agent chooses a new action there is a 25\% chance it will repeat the previous action instead.
+With ``sticky actions'' \cite{machado2018revisiting} each time the agent chooses a new action there is a 25\% chance it will repeat the previous action instead.
 This makes it so the agent is never sure where it will end up at any given time, and forces it to act accordingly.
 
 \subsubsection{Episodic Life}
@@ -176,14 +195,22 @@ Since no signal has been sent, the agent does not understand it is no longer in 
 To avoid this we want to terminate the episode after a single life is lost.
 Ending the episode after a life is lost also creates a positive side effect; the longer the episode continues, the more rewards the agent can gain, so the agent learns to avoid death without explicitly defining a penalty for losing a life.
 
-\section{Reward Shaping}
-\begin{itemize}
-    \item ideal reward = +1 level complete (too sparse)
-    \item end of level is always on the right side
-    \item reward for moving right
-    \item bonus for checkpoint/end of level
-\end{itemize}
-reward function based on https://github.com/Kautenja/gym-super-mario-bros/
+\section{Reward}
+The goal of an agent in reinforcement learning is to maximize its cumulative reward.
+After each step the agent receives a reward from the environment, which describes how good (or bad) the action taken during this step was.
+The value of this reward is determined by the reward function.
+A well designed reward function is important in order for the agent to achieve the desired behavior.
+
+In Gym Retro rewards are tied to the game score by default.
+In Super Mario World the player gains points by collecting coins or defeating enemies.
+However, the goal of a human player is usually completing the different levels of the game, not maximizing the score.
+When trained using the score as reward, the agent will find some unintended way to maximize its score (defeating the same enemy over and over, for example) without ever finishing a level.
+
+In theory complete level = +1
+too sparse
+episode can be thousands of steps
+unrealistic to find solution
+End of level is always on the right side. Reward for moving right.
 velocity: the difference in the agent's x position between states
 
 velocity = x1 - x0
@@ -192,19 +219,18 @@ x0 is the x position before the step
 
 x1 is the x position after the step
 
-\begin{itemize}
-    \item moving right $\Leftrightarrow$ $v > 0$
-    \item moving left $\Leftrightarrow$ $v < 0$
-    \item not moving $\Leftrightarrow$ $v = 0$
-\end{itemize}
-bonus:
-\begin{itemize}
-    \item bonus of 'max reward'/2 for reaching checkpoint
-    \item bonus of 'max reward' for reaching end of level
-\end{itemize}
-no penalty for death as this causes the agent to be too cautious (not enough exploration)
+$x_{t}$ is Mario's horizontal position (x-value) at step $t$.
+\begin{eqnarray*}
+    x_{t} - x_{t-1} > 0&\iff&\text{Mario is moving to the right}\\
+    x_{t} - x_{t-1} = 0&\iff&\text{Mario is standing in place}\\
+    x_{t} - x_{t-1} < 0&\iff&\text{Mario is moving to the left}
+\end{eqnarray*}
 
-total reward is clipped between 'min reward' and 'max reward' (default -15, 15)
+By applying a small penalty each step we incentivize the agent to complete the level as fast as possible.
+
+The reward $r_{t}$ at each step $t$ is
+\[r_{t} = x_{t} - x_{t-1} - 1\]
+
 
 \section{Algorithm}
 \begin{itemize}
