@@ -17,226 +17,225 @@
 \newdate{date}{31}{08}{2022}
 \date{\displaydate{date}}
 \begin{document}
-    \maketitle
+\maketitle
 
-    \section{Introduction}
-    My graduate work is based on the popular game ``Super Mario World''.
-    Super Mario is a game that was developed by Nintendo for their SNES\footnote{Super Nintendo Entertainment System}.
-    The aim of the game is to complete a number of levels by reaching the “goalpost" for each level.
-    During each level, which consists of different worlds, obstacles and enemies must be avoided and eliminated.
-    The player has a console to control the game.
-    Very simply said, the intention during this graduate work is to replace the player and console with an AI model.
+\section{Introduction}
+My graduate work is based on the popular game ``Super Mario World''.
+Super Mario is a game that was developed by Nintendo for their SNES\footnote{Super Nintendo Entertainment System}.
+The aim of the game is to complete a number of levels by reaching the “goalpost" for each level.
+During each level, which consists of different worlds, obstacles and enemies must be avoided and eliminated.
+The player has a console to control the game.
+Very simply said, the intention during this graduate work is to replace the player and console with an AI model.
 
-    \begin{figure}[ht]
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.75\textwidth]{start-screen}
+    \caption{Super Mario World start screen}
+    \label{fig:smw}
+\end{figure}
+
+For the elaboration of this work I have used the following components and techniques.
+\begin{itemize}
+    \item Reinforcement learning
+    \item OpenAI Gym\footnote{\url{https://github.com/openai/gym}} \cite{brockman2016openai} - RL library
+    \item Gym Retro\footnote{\url{https://github.com/openai/retro/}} - Game integration for Gym
+\end{itemize}
+These different components are discussed in more detail later in this document.
+
+\section{Goals}
+The ultimate goal of this project is to train an agent so that he can complete some levels of Super Mario World.
+The aim is to make the agent learn and deal with the obstacles presented in the game.
+Obstacles can consist of obstacles or enemies that must be defeated or dodged.
+\begin{itemize}
+    \item Train an agent to complete level(s) of the game
+    \item Test agent on unseen levels
+\end{itemize}
+The goal is to train an agent to complete level(s) of the game.
+Look at how the agent learns to deal with obstacles presented by the game.
+Test the agent on new/unseen data (in the form of levels the agent hasn't trained on).
+
+\section{Reinforcement Learning}
+Reinforcement learning loop
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.6\textwidth]{AE_loop}
+    \caption{The agent-environment loop. \textbf{Source:} \url{https://www.gymlibrary.ml/_images/AE_loop.png}}
+    \label{fig:loop}
+\end{figure}
+\begin{itemize}
+    \item agent = RL model
+    \item environment = game
+    \item action = button input
+    \item state = current frame
+    \item reward = decide if action was good
+\end{itemize}
+In this case an action means pressing buttons on the controller.
+The observation is the next frame of the game after the action has been executed.
+The reward is based on how good or bad the effect of the action was on the environment according to the reward function.
+
+\section{Preprocessing}
+Before we can train our agent a number of preprocessing steps are necessary.
+This includes a transformation of both the action and observation space.
+Most of these steps are based on papers discussing the Arcade Learning Environment (ALE) \cite{bellemare2013arcade,machado2018revisiting}.
+The ALE is a framework that allows people to develop AI agents for Atari\footnote{Atari 2600, originally known as Atari VCS (Video Computer System)} games and is commonly used to benchmark reinforcement learning algorithms.
+Even though the ALE was created for Atari games, most of the preprocessing steps used are also applicable to the SNES (and Super Mario World).
+The following steps are implemented as wrappers around the Gym environment.
+
+\subsection{Action Space}
+By default, the Gym Retro environment for Super Mario World uses a MultiBinary\footnote{\url{https://www.gymlibrary.ml/content/spaces/\#multibinary}} space with 12 elements (buttons).
+Each action contains a value for every button in the action space where 0 (not pressed) or 1 (pressed). This results in $2^{12}=4096$ possible combinations.
+Sticking to the default MultiBinary action space leads to three issues:
+\begin{itemize}
+    \item \emph{Large action space.}
+        Exploration in reinforcement learning relies on some form of random sampling.
+        If the action space is large, it will take longer for the agent to find good actions during exploration.
+    \item \emph{Invalid combinations.}
+        Some combinations of buttons cannot be pressed at the same time (i.e. left and right arrows).
+    \item \emph{Irrelevant buttons.} Some buttons are only used to control the game menu or pause the game (select, start, ...) and have no effect on the actual gameplay.
+\end{itemize}
+To solve these problems we take a look at the SNES controller in figure \ref{fig:snes-controller}.
+The game was designed to be played on this controller, so the buttons used in Gym Retro correspond to the buttons on this controller.
+Select, start, and the buttons on the back of the controller are not relevant for our agent.
+The remaining buttons can be split into two clusters, arrow keys and special keys.
+For each cluster, only one button can be pressed at any given time.
+This translates to a MultiDiscrete\footnote{\url{https://www.gymlibrary.ml/content/spaces/\#multidiscrete}} action space, which is the cartesian product of (in this case two) discrete spaces.
+The actions of both discrete spaces are described below.
+In this game the X and Y key serve the same function, so we only need to include one of them.
+Not pressing a button is also a valid action.
+\begin{itemize}
+    \item \emph{Arrow keys.} none, left, right, up, down
+    \item \emph{Special keys.} none, A (spin), B (jump), X (run/interact)
+\end{itemize}
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=.75\textwidth]{snes-controller-annot}
+    \caption{SNES controller}
+    \label{fig:snes-controller}
+\end{figure}
+The resulting MultiDiscrete action space contains $5*4 = 20$ different actions.
+So we have reduced the action space by a significant amount without actually restricting the number of options the agent can take.
+
+\subsection{Observation Space}
+\subsubsection{Transform observation}
+To reduce the memory requirement, each observation is rescaled from 256x224 pixels to 84x84 pixels.
+The color is also converted to grayscale.
+Figure \ref{fig:transformation} shows the result of this transformation.
+Lowering the memory requirement significantly reduces the training time of the agent.
+\begin{figure}[ht]
+    \centering
+    \begin{subfigure}{.5\textwidth}
         \centering
-        \includegraphics[width=0.75\textwidth]{start-screen}
-        \caption{Super Mario World start screen}
-        \label{fig:smw}
-    \end{figure}
-
-    For the elaboration of this work I have used the following components and techniques.
-    \begin{itemize}
-        \item Reinforcement learning
-        \item OpenAI Gym\footnote{\url{https://github.com/openai/gym}} \cite{brockman2016openai} - RL library
-        \item Gym Retro\footnote{\url{https://github.com/openai/retro/}} - Game integration for Gym
-    \end{itemize}
-    These different components are discussed in more detail later in this document.
-
-    \section{Goals}
-    The ultimate goal of this project is to train an agent so that he can complete some levels of Super Mario World.
-    The aim is to make the agent learn and deal with the obstacles presented in the game.
-    Obstacles can consist of obstacles or enemies that must be defeated or dodged.
-    \begin{itemize}
-        \item Train an agent to complete level(s) of the game
-        \item Test agent on unseen levels
-    \end{itemize}
-    The goal is to train an agent to complete level(s) of the game.
-    Look at how the agent learns to deal with obstacles presented by the game.
-    Test the agent on new/unseen data (in the form of levels the agent hasn't trained on).
-
-    \section{Reinforcement Learning}
-    Reinforcement learning loop
-    \begin{figure}[ht]
+        \includegraphics[height=6cm]{original_crop}
+        \caption{Original}
+        \label{fig:sub1}
+    \end{subfigure}%
+    \begin{subfigure}{.5\textwidth}
         \centering
-        \includegraphics[width=0.6\textwidth]{AE_loop}
-        \caption{The agent-environment loop. \textbf{Source:} \url{https://www.gymlibrary.ml/_images/AE_loop.png}}
-        \label{fig:loop}
-    \end{figure}
-    \begin{itemize}
-        \item agent = RL model
-        \item environment = game
-        \item action = button input
-        \item state = current frame
-        \item reward = decide if action was good
-    \end{itemize}
-    In this case an action means pressing buttons on the controller.
-    The observation is the next frame of the game after the action has been executed.
-    The reward is based on how good or bad the effect of the action was on the environment according to the reward function.
+        \includegraphics[height=6cm]{grayscale_crop}
+        \caption{Transformed}
+        \label{fig:sub2}
+    \end{subfigure}
+    \caption{Pixel Transformation}
+    \label{fig:transformation}
+\end{figure}
 
-    \section{Preprocessing}
-    Before we can train our agent a number of preprocessing steps are necessary.
-    This includes a transformation of both the action and observation space.
-    Most of these steps are based on papers discussing the Arcade Learning Environment (ALE) \cite{bellemare2013arcade,machado2018revisiting}.
-    The ALE is a framework that allows people to develop AI agents for Atari\footnote{Atari 2600, originally known as Atari VCS (Video Computer System)} games and is commonly used to benchmark reinforcement learning algorithms.
-    Even though the ALE was created for Atari games, most of the preprocessing steps used are also applicable to the SNES (and Super Mario World).
-    The following steps are implemented as wrappers around the Gym environment.
+\subsubsection{Stack frames}
+The agent is trained on pixels, so each observation can be seen as some sort of screenshot of the game state.
+By using a single frame, the agent cannot perceive the direction or velocity of movement (Is Mario going up or down? How fast is Mario moving?).
+To solve this we ``stack'' four subsequent observations on top of each other and use the resulting observation for training.
+Each observation is placed in a queue and concatenated with the previous three most recent observations.
+On figure \ref{fig:stack} we can see based on the last four observations that Mario is jumping to the right.
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=.6\textwidth]{stacked}
+    \caption{Stacking 4 subsequent observations}
+    \label{fig:stack}
+\end{figure}
 
-    \subsection{Action Space}
-    By default, the Gym Retro environment for Super Mario World uses a MultiBinary\footnote{\url{https://www.gymlibrary.ml/content/spaces/\#multibinary}} space with 12 elements (buttons).
-    Each actions contains a value for every button in the action space where 0 (not pressed) or 1 (pressed). This results in $2^{12}=4096$ possible combinations.
-    Sticking to the default MultiBinary action space leads to three issues:
-    \begin{itemize}
-        \item \emph{Large action space.}
-            Exploration in reinforcement learning relies on some form of random sampling.
-            If the action space is large, it will take longer for the agent to find good actions during exploration.
-        \item \emph{Invalid combinations.}
-            Some combinations of buttons cannot be pressed at the same time (i.e. left and right arrows).
-        \item \emph{Irrelevant buttons.} Some buttons are only used to control the game menu or pause the game (select, start, ...) and have no effect on the actual gameplay.
-    \end{itemize}
+\subsubsection{Skip frames}
+SNES games run at 60 FPS (frames per second), which means there is very little change from frame to frame.
+As such, it is unnecessary to input an action each frame (also human players do not press 60 buttons each second).
+To create the effect of ``skipping'' frames we repeat each action over four frames and sum the accumulated rewards.
+This can be seen as the equivalent of a human player holding the button for a few frames.
+This change brings the agent closer to human behaviour and as an additional bonus speeds up the training of the agent.
+\textbf{\textcolor{red}{afbeelding}}
 
-    To solve these problems we take a look at the SNES controller in figure \ref{fig:snes-controller}.
-    The game was designed to be played on this controller, so the buttons used in Gym Retro correspond to the buttons on this controller.
-    Select, start, and the buttons on the back of the controller are not relevant for our agent.
-    The remaining buttons can be split into two clusters, arrow keys and special keys.
+\subsection{Other}
+\subsubsection{Sticky Actions}
+Super Mario World is deterministic. 
+Enemies and other moving objects will always appear in the same location at the same timestamp of a level.
+We want the AI to learn a policy that will work on other levels, not just memorize one action sequence in a single level, so we need to introduce some form of stochasticity.
+With ``sticky actions'' each time the agent chooses a new action there is a 25\% chance it will repeat the previous action instead.
+This makes it so the agent is never sure where it will end up at any given time, and forces it to act accordingly.
 
-    \begin{figure}[ht]
-        \centering
-        \includegraphics[width=.75\textwidth]{snes-controller-annot}
-        \caption{SNES controller}
-        \label{fig:snes-controller}
-    \end{figure}
+\subsubsection{Episodic Life}
+In gym environments, the current episode ends when the ``done'' signal is received.
+However, in this game the player starts with five lives, so this signal is only sent once the life counter reaches zero.
+Every time Mario dies the game exits the current level and returns to the menu.
+Since no signal has been sent, the agent does not understand it is no longer in the intended level, and as a result can get stuck in the game menu or even enter another level by accident.
+To avoid this we want to terminate the episode after a single life is lost.
+Ending the episode after a life is lost also creates a positive side effect; the longer the episode continues, the more rewards the agent can gain, so the agent learns to avoid death without explicitly defining a penalty for losing a life.
 
-    \textbf{\textcolor{red}{X.}}
-    One button of each cluster can be pressed at the same time.
-    Two discrete action spaces with respectively 5 and 4 actions.
-    MultiDiscrete\footnote{\url{https://www.gymlibrary.ml/content/spaces/\#multidiscrete}} action space.
-    For this game, the X and Y key have the same function, so we only need to include one of them.
-    \begin{itemize}
-        \item \emph{Arrow keys.} none, left, right, down, up
-        \item \emph{Special keys.} none, A (spin), B (jump), X (run/interact)
-    \end{itemize}
-    The resulting MultiDiscrete action space contains $5*4 = 20$ different actions.
-    So we have reduced the action space by a significant amount without actually restricting the number of options the agent can take.
-    \subsection{Observation Space}
-    \subsubsection{Transform observation}
-    To reduce the memory requirement, each observation is rescaled from 256x224 pixels to 84x84 pixels.
-    The color is also converted to grayscale.
-    Figure \ref{fig:transformation} shows the result of this transformation.
-    Lowering the memory requirement significantly reduces the training time of the agent.
-    %TODO fix axes
-    \begin{figure}[ht]
-        \centering
-        \begin{subfigure}{.5\textwidth}
-            \centering
-            \includegraphics[height=6cm]{original_crop}
-            \caption{Original}
-            \label{fig:sub1}
-        \end{subfigure}%
-        \begin{subfigure}{.5\textwidth}
-            \centering
-            \includegraphics[height=6cm]{grayscale_crop}
-            \caption{Transformed}
-            \label{fig:sub2}
-        \end{subfigure}
-        \caption{Pixel Transformation}
-        \label{fig:transformation}
-    \end{figure}
-    \subsubsection{Stack frames}
-    The agent is trained on pixels, so each observation can be seen as some sort of screenshot of the game state.
-    By using a single frame, the agent cannot perceive the direction or velocity of movement (Is Mario going up or down? How fast is Mario moving?).
-    To solve this we ``stack'' four subsequent observations on top of each other and use the resulting observation for training.
-    Each observation is placed in a queue and concatenated with the previous three most recent observations.
-    On figure \ref{fig:stack} we can see based on the last four observations that Mario is jumping to the right.
-    \begin{figure}[ht]
-        \centering
-        \includegraphics[width=.6\textwidth]{stacked}
-        \caption{Stacking 4 subsequent observations}
-        \label{fig:stack}
-    \end{figure}
-    \subsubsection{Skip frames}
-    SNES games run at 60 FPS (frames per second), which means there is very little change from frame to frame.
-    As such, it is unnecessary to input an action each frame (also human players do not press 60 buttons each second).
-    To create the effect of ``skipping'' frames we repeat each action over four frames and sum the accumulated rewards.
-    This can be seen as the equivalent of a human player holding the button for a few frames.
-    This change brings the agent closer to human behaviour and as an additional bonus speeds up the training of the agent.
-    \textbf{\textcolor{red}{afbeelding}}
-    \subsection{Other}
-    \subsubsection{Sticky Actions}
-    \textbf{\textcolor{red}{X.}}
-    Super Mario World is deterministic. 
-    Enemies and other moving objects will always appear in the same location at the same timestamp of a level.
-    We want the AI to learn a policy that will work on other levels, not just memorize one path in a single level, so we need to introduce some form of stochasticity.
-    With ``sticky actions'' each time the agent chooses a new action there is a 25\% chance it will repeat the previous action instead.
-    This makes it so the agent is never sure where it will end up at any given time, and forces it to act accordingly.
+\section{Reward Shaping}
+\begin{itemize}
+    \item ideal reward = +1 level complete (too sparse)
+    \item end of level is always on the right side
+    \item reward for moving right
+    \item bonus for checkpoint/end of level
+\end{itemize}
+reward function based on https://github.com/Kautenja/gym-super-mario-bros/
+velocity: the difference in the agent's x position between states
 
-    \subsubsection{Episodic Life}
-    In gym environments, the current episode ends when the ``done'' signal is received.
-    However, in this game the player starts with five lives, so this signal is only sent once the life counter reaches zero.
-    Every time Mario dies the game exits the current level and returns to the menu.
-    Since no signal has been sent, the agent does not understand it is no longer in the intended level, and as a result can get stuck in the game menu or even enter another level by accident.
-    To avoid this we want to terminate the episode after a single life is lost.
-    Ending the episode after a life is lost also creates a positive side effect; the longer the episode continues, the more rewards the agent can gain, so the agent learns to avoid death without explicitly defining a penalty for losing a life.
+velocity = x1 - x0
 
-    \section{Reward Shaping}
-    \begin{itemize}
-        \item ideal reward = +1 level complete (too sparse)
-        \item end of level is always on the right side
-        \item reward for moving right
-        \item bonus for checkpoint/end of level
-    \end{itemize}
-    reward function based on https://github.com/Kautenja/gym-super-mario-bros/
-    velocity: the difference in the agent's x position between states
+x0 is the x position before the step
 
-    velocity = x1 - x0
+x1 is the x position after the step
 
-    x0 is the x position before the step
+\begin{itemize}
+    \item moving right $\Leftrightarrow$ $v > 0$
+    \item moving left $\Leftrightarrow$ $v < 0$
+    \item not moving $\Leftrightarrow$ $v = 0$
+\end{itemize}
+bonus:
+\begin{itemize}
+    \item bonus of 'max reward'/2 for reaching checkpoint
+    \item bonus of 'max reward' for reaching end of level
+\end{itemize}
+no penalty for death as this causes the agent to be too cautious (not enough exploration)
 
-    x1 is the x position after the step
+total reward is clipped between 'min reward' and 'max reward' (default -15, 15)
 
-    \begin{itemize}
-        \item moving right $\Leftrightarrow$ $v > 0$
-        \item moving left $\Leftrightarrow$ $v < 0$
-        \item not moving $\Leftrightarrow$ $v = 0$
-    \end{itemize}
-    bonus:
-    \begin{itemize}
-        \item bonus of 'max reward'/2 for reaching checkpoint
-        \item bonus of 'max reward' for reaching end of level
-    \end{itemize}
-    no penalty for death as this causes the agent to be too cautious (not enough exploration)
+\section{Algorithm}
+\begin{itemize}
+    \item Model-Free RL vs Model-Based RL
+    \item Policy Optimization vs Q-Learning
+\end{itemize}
+PPO:
+\begin{itemize}
+    \item Proximal Policy Optimization (PPO)\cite{schulman2017proximal}
+    \item Policy based algorithm
+    \item Stable Baselines library\footnote{\url{https://github.com/DLR-RM/stable-baselines3}}
+\end{itemize}
+\subsection{Hyperparameters}
+The following hyperparameters for PPO were used to train the agent.
+\begin{itemize}
+    \item learning\_rate = $1e^{-4}$
+    \item n\_steps = 512
+    \item batch\_size = 512
+    \item n\_epochs = 2
+    \item clip\_range = 0.1
+    \item ent\_coef = 0.001
+\end{itemize}
 
-    total reward is clipped between 'min reward' and 'max reward' (default -15, 15)
+\section{Training \& Results}
+\subsection{Model A}
+Trained for 25 million time steps on the level 'YoshiIsland2'.
+Most basic level (avoid enemies, jump over pit).
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=\textwidth]{plot_model_a.png}
+\end{figure}
 
-    \section{Algorithm}
-    \begin{itemize}
-        \item Model-Free RL vs Model-Based RL
-        \item Policy Optimization vs Q-Learning
-    \end{itemize}
-    PPO:
-    \begin{itemize}
-        \item Proximal Policy Optimization (PPO)\cite{schulman2017proximal}
-        \item Policy based algorithm
-        \item Stable Baselines library\footnote{\url{https://github.com/DLR-RM/stable-baselines3}}
-    \end{itemize}
-    \subsection{Hyperparameters}
-    The following hyperparameters for PPO were used to train the agent.
-    \begin{itemize}
-        \item learning\_rate = $1e^{-4}$
-        \item n\_steps = 512
-        \item batch\_size = 512
-        \item n\_epochs = 2
-        \item clip\_range = 0.1
-        \item ent\_coef = 0.001
-    \end{itemize}
-
-    \section{Training \& Results}
-    \subsection{Model A}
-    Trained for 25 million time steps on the level 'YoshiIsland2'.
-    Most basic level (avoid enemies, jump over pit).
-    \begin{figure}[ht]
-        \centering
-        \includegraphics[width=\textwidth]{plot_model_a.png}
-    \end{figure}
-
-    \printbibliography
+\printbibliography
 \end{document}
