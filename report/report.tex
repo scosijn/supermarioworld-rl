@@ -8,6 +8,9 @@
 \usepackage{subcaption}
 \usepackage{xcolor}
 \usepackage{amsmath}
+\usepackage{siunitx}
+\usepackage{tabularx}
+\usepackage{booktabs}
 \usepackage[us,nodayofweek]{datetime}
 \usepackage[style=alphabetic,maxbibnames=99,giveninits]{biblatex}
 \addbibresource{references.bib}
@@ -37,10 +40,10 @@ During each level, which consists of different worlds, obstacles and enemies mus
 The player has a console to control the game.
 Very simply said, the intention during this graduate work is to replace the player and console with an AI model.
 
-\begin{figure}[ht]
+\begin{figure}[htbp]
     \centering
     \includegraphics[width=0.75\textwidth]{start-screen}
-    \caption{Super Mario World start screen}
+    \caption{Super Mario World start screen.}
     \label{fig:smw}
 \end{figure}
 
@@ -66,7 +69,7 @@ Test the agent on new/unseen data (in the form of levels the agent hasn't traine
 
 \section{Reinforcement Learning}
 Reinforcement learning loop
-\begin{figure}[ht]
+\begin{figure}[htbp]
     \centering
     \includegraphics[width=0.6\textwidth]{AE_loop}
     \caption{The agent-environment loop. \textbf{Source:} \url{https://www.gymlibrary.ml/_images/AE_loop.png}}
@@ -123,12 +126,12 @@ In this game the \img{SuperNintendo-Button-X} and \img{SuperNintendo-Button-Y} k
 Not pressing a button is also a valid action.
 \begin{itemize}
     \item \emph{Arrow keys.} none, left (\img{SuperNintendo-Dpad-Left}), right (\img{SuperNintendo-Dpad-Right}), up (\img{SuperNintendo-Dpad-Up}), down (\img{SuperNintendo-Dpad-Down})
-    \item \emph{Special keys.} none, spin (\img{SuperNintendo-Button-A}), jump (\img{SuperNintendo-Button-B}), run/interact (\img{SuperNintendo-Button-X})
+    \item \emph{Special keys.} none, spin (\img{SuperNintendo-Button-A}), jump (\img{SuperNintendo-Button-B}), run/throw (\img{SuperNintendo-Button-X})
 \end{itemize}
-\begin{figure}[ht]
+\begin{figure}[htbp]
     \centering
-    \includegraphics[width=.75\textwidth]{snes-controller-annot}
-    \caption{SNES controller}
+    \includegraphics[width=.75\textwidth]{snes-controller}
+    \caption{SNES controller.}
     \label{fig:snes-controller}
 \end{figure}
 The resulting MultiDiscrete action space contains $5*4 = 20$ different actions.
@@ -140,7 +143,7 @@ To reduce the memory requirement, each observation is rescaled from 256x224 pixe
 The color is also converted to grayscale.
 Figure \ref{fig:transformation} shows the result of this transformation.
 Lowering the memory requirement significantly reduces the training time of the agent.
-\begin{figure}[ht]
+\begin{figure}[htbp]
     \centering
     \begin{subfigure}{.5\textwidth}
         \centering
@@ -154,7 +157,7 @@ Lowering the memory requirement significantly reduces the training time of the a
         \caption{Transformed}
         \label{fig:sub2}
     \end{subfigure}
-    \caption{Pixel Transformation}
+    \caption{Pixel Transformation.}
     \label{fig:transformation}
 \end{figure}
 
@@ -164,10 +167,10 @@ By using a single frame, the agent cannot perceive the direction or velocity of 
 To solve this we ``stack'' four subsequent observations on top of each other and use the resulting observation for training.
 Each observation is placed in a queue and concatenated with the previous three most recent observations.
 On figure \ref{fig:stack} we can see based on the last four observations that Mario is jumping to the right.
-\begin{figure}[ht]
+\begin{figure}[htbp]
     \centering
     \includegraphics[width=.6\textwidth]{stacked}
-    \caption{Stacking four subsequent observations}
+    \caption{Stacking four subsequent observations.}
     \label{fig:stack}
 \end{figure}
 
@@ -188,7 +191,7 @@ With ``sticky actions'' \cite{machado2018revisiting} each time the agent chooses
 This makes it so the agent is never sure where it will end up at any given time, and forces it to act accordingly.
 
 \subsubsection{Episodic Life}
-In gym environments, the current episode ends when the ``done'' signal is received.
+In Gym environments, the current episode ends when the ``done'' signal is received.
 However, in this game the player starts with five lives, so this signal is only sent once the life counter reaches zero.
 Every time Mario dies the game exits the current level and returns to the menu.
 Since no signal has been sent, the agent does not understand it is no longer in the intended level, and as a result can get stuck in the game menu or even enter another level by accident.
@@ -201,64 +204,92 @@ After each step the agent receives a reward from the environment, which describe
 The value of this reward is determined by the reward function.
 A well designed reward function is important in order for the agent to achieve the desired behavior.
 
-In Gym Retro rewards are tied to the game score by default.
+Gym Retro's default rewards are most often tied to the game score.
 In Super Mario World the player gains points by collecting coins or defeating enemies.
-However, the goal of a human player is usually completing the different levels of the game, not maximizing the score.
+However, the goal of a human player is usually beating the game by completing all the different levels, not maximizing the score.
 When trained using the score as reward, the agent will find some unintended way to maximize its score (defeating the same enemy over and over, for example) without ever finishing a level.
+An alternative reward is needed if we want the agent to act similar to human players.
 
-In theory complete level = +1
-too sparse
-episode can be thousands of steps
-unrealistic to find solution
-End of level is always on the right side. Reward for moving right.
-velocity: the difference in the agent's x position between states
+In theory you could design a reward function that gives $+1$ for completing a level of the game.
+This reward is not practical though, because it is too ``sparse''.
+The duration of a single episode is limited to several thousand steps due to the timer present in the game.
+It is very unlikely the agent will reach the end of a level by taking random actions before the timer expires, so it might never see a positive reward.
+The agent cannot learn which actions are good with such a restrictive reward.
+So we are looking for some reward that is easier to obtain but should still result in completing a level if maximized.
 
-velocity = x1 - x0
-
-x0 is the x position before the step
-
-x1 is the x position after the step
-
-$x_{t}$ is Mario's horizontal position (x-value) at step $t$.
+Mario starts each level on the left side and the flag which indicates the end of that level is always on the right side.
+We can reward the agent for moving right by comparing Mario's horizontal position (x-value) before and after each step.
+Subtracting the x-value $x_{t}$ at step $t$ with that of the previous step $x_{t-1}$ can result in the following three scenarios.
 \begin{eqnarray*}
     x_{t} - x_{t-1} > 0&\iff&\text{Mario is moving to the right}\\
     x_{t} - x_{t-1} = 0&\iff&\text{Mario is standing in place}\\
     x_{t} - x_{t-1} < 0&\iff&\text{Mario is moving to the left}
 \end{eqnarray*}
+The magnitude of the reward is determined by how much Mario moved in a single step.
+Moving faster will result in a larger reward (or penalty in case of moving left).
 
-By applying a small penalty each step we incentivize the agent to complete the level as fast as possible.
-
-The reward $r_{t}$ at each step $t$ is
+There is one more simple improvement we can make.
+By applying a small penalty ($-1$) on each step we incentivize the agent to try to complete the level as fast as possible.
+Combining both gives us the reward $r_{t}$ at each step $t$.
 \[r_{t} = x_{t} - x_{t-1} - 1\]
 
 
 \section{Algorithm}
+With the preprocessing and reward design completed, only the choice of algorithm remains before we can start training.
+
 \begin{itemize}
     \item Model-Free RL vs Model-Based RL
-    \item Policy Optimization vs Q-Learning
+    \begin{itemize}
+        \item By a model of the environment, we mean a function which predicts state transitions and rewards.
+        \item The main upside to having a model is that it allows the agent to plan by thinking ahead, seeing what would happen for a range of possible choices, and explicitly deciding between its options. (AlphaZero, Chess)
+        \item The main downside is that a ground-truth model of the environment is usually not available to the agent.
+        \item While model-free methods forego the potential gains in sample efficiency from using a model, they tend to be easier to implement and tune.
+    \end{itemize}
+    \item Model-Free RL
+    \begin{itemize}
+        \item Policy Optimization vs Q-Learning
+        \item What to learn? Policy or action-value function?
+        \item The primary strength of policy optimization methods is that they are principled, in the sense that you directly optimize for the thing you want. This tends to make them stable and reliable.
+        \item Q-learning methods gain the advantage of being substantially more sample efficient when they do work, because they can reuse data more effectively than policy optimization techniques.
+        \item Interpolating Between Policy Optimization and Q-Learning
+    \end{itemize}
+    \item Proximal Policy Optimization (PPO) \cite{schulman2017proximal}
+    \begin{itemize}
+        \item Policy based algorithm
+        \item PPO is motivated by the question: how can we take the biggest possible improvement step on a policy using the data we currently have, without stepping so far that we accidentally cause performance collapse?
+        \item PPO-Clip relies on specialized clipping in the objective function to remove incentives for the new policy to get far from the old policy.
+        \item PPO trains a stochastic policy in an on-policy way. This means that it explores by sampling actions according to the latest version of its stochastic policy. The amount of randomness in action selection depends on both initial conditions and the training procedure. Over the course of training, the policy typically becomes progressively less random, as the update rule encourages it to exploit rewards that it has already found. This may cause the policy to get trapped in local optima.
+        \item Implementation from the Stable Baselines library\footnote{\url{https://github.com/DLR-RM/stable-baselines3}}
+    \end{itemize}
 \end{itemize}
-PPO:
-\begin{itemize}
-    \item Proximal Policy Optimization (PPO)\cite{schulman2017proximal}
-    \item Policy based algorithm
-    \item Stable Baselines library\footnote{\url{https://github.com/DLR-RM/stable-baselines3}}
-\end{itemize}
+
 \subsection{Hyperparameters}
 The following hyperparameters for PPO were used to train the agent.
-\begin{itemize}
-    \item learning\_rate = $1e^{-4}$
-    \item n\_steps = 512
-    \item batch\_size = 512
-    \item n\_epochs = 2
-    \item clip\_range = 0.1
-    \item ent\_coef = 0.001
-\end{itemize}
+Unmentioned parameters use the default value defined in the Stable Baselines library.
+\begin{table}[htbp]
+\centering
+\begin{tabularx}{\linewidth}{llX}
+\toprule
+Hyperparameter & Value & Description \tabularnewline
+\midrule
+Learning rate & \num{1e-4} & text \tabularnewline
+Horizon (T) & 512 & Number of steps to run for each environment per update. Rollout buffer size is equal to horizon $\times$ environments. \tabularnewline
+Num. environments & 8 & Number of environments running in parallel. \tabularnewline
+Minibatch size & 512 & Steps of interaction for the agent and the environment in each epoch. \tabularnewline
+Num. epochs & 2 & Number of epochs of interaction to perform. \tabularnewline
+Clipping range ($\epsilon$) & 0.1 & Hyperparameter for clipping in the policy objective. Roughly: how far can the new policy go from the old policy while still profiting (improving the objective function)? \tabularnewline
+Entropy coeff. ($c_1$) & 0.001 & text \tabularnewline
+\bottomrule
+\end{tabularx}
+\caption{PPO hyperparameters.}
+\label{table:hyperparams}
+\end{table}
 
 \section{Training \& Results}
 \subsection{Model A}
 Trained for 25 million time steps on the level 'YoshiIsland2'.
 Most basic level (avoid enemies, jump over pit).
-\begin{figure}[ht]
+\begin{figure}[htbp]
     \centering
     \includegraphics[width=\textwidth]{plot_model_a.png}
 \end{figure}
