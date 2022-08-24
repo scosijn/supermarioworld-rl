@@ -1,5 +1,5 @@
-\documentclass{article}
-\usepackage[a4paper]{geometry}
+\documentclass[11pt,a4paper]{article}
+\usepackage[a4paper,margin=1in,includefoot]{geometry}
 \usepackage[utf8]{inputenc}
 \usepackage{hyperref}
 \usepackage{float}
@@ -13,6 +13,7 @@
 \usepackage{booktabs}
 \usepackage[us,nodayofweek]{datetime}
 \usepackage[style=alphabetic,maxbibnames=99,giveninits]{biblatex}
+\captionsetup{font=footnotesize}
 \addbibresource{references.bib}
 \graphicspath{{./images/}}
 \newcommand*{\img}[1]{%
@@ -43,7 +44,7 @@ Very simply said, the intention during this graduate work is to replace the play
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=0.75\textwidth]{start-screen}
-    \caption{Super Mario World start screen.}
+    \caption{Screenshot of the Super Mario World start screen.}
     \label{fig:smw}
 \end{figure}
 
@@ -68,11 +69,14 @@ Look at how the agent learns to deal with obstacles presented by the game.
 Test the agent on new/unseen data (in the form of levels the agent hasn't trained on).
 
 \section{Reinforcement Learning}
-Reinforcement learning loop
+Reinforcement learning (RL) is an area of machine learning which studies how intelligent agents learn to take actions in an environment by trial and error.
+The agent is not told which actions to take, but must explore for itself which actions result in the highest reward.
+Rewarding good behavior or penalizing bad behavior makes the agent more or less likely to repeat this behavior in the future.
+How the agent interacts with its environment is shown in the agent-environment loop (figure \ref{fig:loop}).
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=0.6\textwidth]{AE_loop}
-    \caption{The agent-environment loop. \textbf{Source:} \url{https://www.gymlibrary.ml/_images/AE_loop.png}}
+    \caption{The agent-environment loop. Image source \url{https://www.gymlibrary.dev}.}
     \label{fig:loop}
 \end{figure}
 \begin{itemize}
@@ -109,7 +113,7 @@ Each action contains a value for every button in the action space where 0 (not p
 Sticking to the default MultiBinary action space leads to three issues:
 \begin{itemize}
     \item \emph{Large action space.}
-        Exploration in reinforcement learning relies on some form of random sampling.
+        Exploration in RL relies on some form of random sampling.
         If the action space is large, it will take longer for the agent to find good actions during exploration.
     \item \emph{Invalid combinations.}
         Some combinations of buttons cannot be pressed at the same time (e.g. left and right arrows).
@@ -236,32 +240,27 @@ Combining both gives us the reward $r_{t}$ at each step $t$.
 
 \section{Algorithm}
 With the preprocessing and reward design completed, only the choice of algorithm remains before we can start training.
+Reinforcement learning algorithms can be divided into two branches: \emph{Model-Based RL} and \emph{Model-Free RL}.
+In model-based RL the agent uses predictions of the environment response.
+This allows the agent to plan ahead, seeing what would happen for a range of possible actions.
+The main benefit of model-based algrithms is sample efficiency.
+The downside is that a ground-truth model of the environment is usually not available
+In contrast, model-free algorithms sample purely from experience and never use generated predictions of the next state/reward.
+This makes them easier to implement and tune but also less sample efficient.
+In the case of Super Mario World, we opt for a model-free algorithm.
 
-\begin{itemize}
-    \item Model-Free RL vs Model-Based RL
-    \begin{itemize}
-        \item By a model of the environment, we mean a function which predicts state transitions and rewards.
-        \item The main upside to having a model is that it allows the agent to plan by thinking ahead, seeing what would happen for a range of possible choices, and explicitly deciding between its options. (AlphaZero, Chess)
-        \item The main downside is that a ground-truth model of the environment is usually not available to the agent.
-        \item While model-free methods forego the potential gains in sample efficiency from using a model, they tend to be easier to implement and tune.
-    \end{itemize}
-    \item Model-Free RL
-    \begin{itemize}
-        \item Policy Optimization vs Q-Learning
-        \item What to learn? Policy or action-value function?
-        \item The primary strength of policy optimization methods is that they are principled, in the sense that you directly optimize for the thing you want. This tends to make them stable and reliable.
-        \item Q-learning methods gain the advantage of being substantially more sample efficient when they do work, because they can reuse data more effectively than policy optimization techniques.
-        \item Interpolating Between Policy Optimization and Q-Learning
-    \end{itemize}
-    \item Proximal Policy Optimization (PPO) \cite{schulman2017proximal}
-    \begin{itemize}
-        \item Policy based algorithm
-        \item PPO is motivated by the question: how can we take the biggest possible improvement step on a policy using the data we currently have, without stepping so far that we accidentally cause performance collapse?
-        \item PPO-Clip relies on specialized clipping in the objective function to remove incentives for the new policy to get far from the old policy.
-        \item PPO trains a stochastic policy in an on-policy way. This means that it explores by sampling actions according to the latest version of its stochastic policy. The amount of randomness in action selection depends on both initial conditions and the training procedure. Over the course of training, the policy typically becomes progressively less random, as the update rule encourages it to exploit rewards that it has already found. This may cause the policy to get trapped in local optima.
-        \item Implementation from the Stable Baselines library\footnote{\url{https://github.com/DLR-RM/stable-baselines3}}
-    \end{itemize}
-\end{itemize}
+In model-free RL there are two main approaches to training agents: \emph{Q-Learning} and \emph{Policy Optimization}.
+Q-learning methods learn an approximator for the optimal action-value function.
+In general, Q-learning methods are more sample efficient because they can reuse old data more effectively, while policy optimization methods are more stable and reliable.
+
+Proximal Policy Optimization (PPO) \cite{schulman2017proximal} is a state-of-the-art policy optimization algorithm.
+PPO is motivated by the question: ``How can we take the biggest possible improvement step on a policy using the data we currently have, without stepping so far that we accidentally cause performance collapse?''
+PPO-clip (the most common variant of PPO, also the variant implemented in the Stable Baselines library\footnote{\url{https://github.com/DLR-RM/stable-baselines3}}) achieves this with clipping in the objective function to remove incentives for the new policy to get far from the old policy.
+%
+PPO trains a stochastic policy in an on-policy way.
+This means that it explores by sampling actions according to the latest version of its stochastic policy.
+The amount of randomness in action selection depends on both initial conditions and the training procedure.
+Over the course of training, the policy typically becomes progressively less random, as the update rule encourages it to exploit rewards that it has already found.
 
 \subsection{Hyperparameters}
 The following hyperparameters for PPO were used to train the agent.
@@ -272,13 +271,13 @@ Unmentioned parameters use the default value defined in the Stable Baselines lib
 \toprule
 Hyperparameter & Value & Description \tabularnewline
 \midrule
-Learning rate & \num{1e-4} & text \tabularnewline
+Learning rate & \num{1e-4} & Step size of the Adam optimizer. \tabularnewline
 Horizon (T) & 512 & Number of steps to run for each environment per update. Rollout buffer size is equal to horizon $\times$ environments. \tabularnewline
 Num. environments & 8 & Number of environments running in parallel. \tabularnewline
 Minibatch size & 512 & Steps of interaction for the agent and the environment in each epoch. \tabularnewline
 Num. epochs & 2 & Number of epochs of interaction to perform. \tabularnewline
-Clipping range ($\epsilon$) & 0.1 & Hyperparameter for clipping in the policy objective. Roughly: how far can the new policy go from the old policy while still profiting (improving the objective function)? \tabularnewline
-Entropy coeff. ($c_1$) & 0.001 & text \tabularnewline
+Clipping range ($\epsilon$) & 0.1 & Hyperparameter for clipping in the policy objective. \tabularnewline
+Entropy coeff. ($c_1$) & 0.001 & Helps prevent premature convergence of one action probability dominating the policy and preventing exploration \tabularnewline
 \bottomrule
 \end{tabularx}
 \caption{PPO hyperparameters.}
