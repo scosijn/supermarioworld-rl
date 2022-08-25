@@ -51,11 +51,10 @@ def play_all_recordings(path):
         play_recording(file_path)
         
 
-def plot_rollout(path, xlabel='Step', ylabel='Value', title=''):
+def plot_rollout(path, title=''):
     df = pd.read_csv(path)
     plt.plot(df['Step'], df['Value'])
     plt.plot(df['Step'], df['Value'].ewm(span=0.1*len(df)).mean())
-    plt.xlabel(xlabel)
-    plt.ylabel(ylabel)
+    plt.xlabel('Timestep')
     plt.title(title)
     plt.show()
