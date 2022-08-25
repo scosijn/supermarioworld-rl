@@ -1,6 +1,5 @@
 import time
 import retro
-import itertools
 import numpy as np
 from wrappers import MarioWrapper
 from callbacks import ProgressBar, CheckpointCallback
@@ -26,7 +25,7 @@ def make_retro_env(state, n_envs=1):
             grayscale=True,
             stickiness=0.25,
             n_skip=4,
-            rewards=(-15, 15)
+            y_pos_reward=True
         )
         env = Monitor(env)
         return env
@@ -114,44 +113,17 @@ def random_agent(env):
         env.render()
 
 
-def grid_search():
-    clip_range_arr = [0.1, 0.2]
-    ent_coef_arr = [0.01, 0.001]
-    grid = itertools.product(clip_range_arr, ent_coef_arr)
-    for clip_range, ent_coef in grid:
-        model_name = '_'.join(['clip_range'+str(clip_range), 'ent_coef'+str(ent_coef)])
-        env = make_retro_env('YoshiIsland1', n_envs=8)
-        model = PPO(policy='CnnPolicy',
-                    env=env,
-                    learning_rate=lambda f: f * 2.5e-4,
-                    n_steps=1024,
-                    batch_size=1024,
-                    n_epochs=2,
-                    clip_range=clip_range,
-                    ent_coef=ent_coef,
-                    seed=42,
-                    tensorboard_log='./tensorboard/')
-        train_model(model,
-                    total_timesteps=7500000,
-                    save_freq=0,
-                    name_prefix=model_name)
-        model.save('./models/' + model_name)
-        env.close()
-
-
 def main():
     n_envs = 8
     total_timesteps = 25_000_000
-    save_freq = 0 #(0.2 * total_timesteps) // n_envs
-    env = make_retro_env('YoshiIsland3', n_envs=n_envs)
-    #model = PPO_model(env)
-    model = PPO.load('./models/PPO_YoshiIsland3_1')
-    model.set_env(env)
+    save_freq = (0.2 * total_timesteps) // n_envs
+    env = make_retro_env('DonutPlains1', n_envs=n_envs)
+    model = PPO_model(env)
     train_model(model,
                 total_timesteps=total_timesteps,
                 save_freq=save_freq,
-                name_prefix='PPO_YoshiIsland3_2')
-    model.save('./models/PPO_YoshiIsland3_2')
+                name_prefix='PPO_DonutPlains1')
+    model.save('./models/PPO_DonutPlains1')
     env.close()
 
 

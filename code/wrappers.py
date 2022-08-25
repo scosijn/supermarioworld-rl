@@ -93,20 +93,16 @@ class MarioActionWrapper(gym.ActionWrapper):
 
 
 class MarioRewardWrapper(gym.RewardWrapper):
-    def __init__(self, env, min_reward=-15, max_reward=15):
+    def __init__(self, env, include_y_pos=False):
         super().__init__(env)
+        self.include_y_pos = include_y_pos
         self.prev_x_pos = None
         self.prev_y_pos = None
-        self.checkpoint = None
-        self.min_reward = min_reward
-        self.max_reward = max_reward
-        self._reward_range = (min_reward, max_reward)
 
     def reset(self, **kwargs):
         obs = self.env.reset(**kwargs)
         self.prev_x_pos = None
         self.prev_y_pos = None
-        self.checkpoint = None
         return obs
 
     def step(self, action):
@@ -114,85 +110,19 @@ class MarioRewardWrapper(gym.RewardWrapper):
         return obs, self.reward(rew, info), done, info
 
     def reward(self, rew, info):
-        rew = -0.5
+        rew = -1
         x_pos = info['x_pos']
-        y_pos = info['y_pos']
-        #checkpoint = info['checkpoint']
-        #endoflevel = info['endoflevel']
-        #is_dying = info['is_dying']
         if self.prev_x_pos is None:
             self.prev_x_pos = x_pos
-        if self.prev_y_pos is None:
-            self.prev_y_pos = y_pos
-        #if self.checkpoint is None:
-            #self.checkpoint = checkpoint
-        rew += np.sign(x_pos - self.prev_x_pos)/2
+        rew += x_pos - self.prev_x_pos
         self.prev_x_pos = x_pos
-        rew += np.sign(-1 * (y_pos - self.prev_y_pos))
-        self.prev_y_pos = y_pos
-        #if self.checkpoint == 0 and checkpoint == 1:
-            #self.checkpoint = checkpoint
-            #rew += (self.max_reward / 2)
-        #if endoflevel == 1:
-            #rew += self.max_reward
-        #if is_dying == 1:
-        #    rew -= self.max_reward
-        #return np.clip(rew, self.min_reward, self.max_reward)
+        if self.include_y_pos:
+            y_pos = info['y_pos']
+            if self.prev_y_pos is None:
+                self.prev_y_pos = y_pos
+            rew += np.sign(-1 * (y_pos - self.prev_y_pos))
+            self.prev_y_pos = y_pos
         return rew
-
-
-#class RandomStart(gym.Wrapper):
-#    """
-#    Randomize the environment by waiting a random number of steps on reset.
-#
-#    Args:
-#        env (Gym Environment): the environment to wrap
-#        max_steps (int): the maximum amount of steps to wait
-#    """
-#
-#    def __init__(self, env, max_steps=30):
-#        super().__init__(env)
-#        assert max_steps >= 0
-#        self.max_steps = max_steps
-#
-#    def reset(self, **kwargs):
-#        self.env.reset(**kwargs)
-#        steps = self.unwrapped.np_random.randint(1, self.max_steps + 1)
-#        wait = np.zeros(self.env.action_space.shape, dtype=int)
-#        obs = None
-#        for _ in range(steps):
-#            obs, _, done, _ = self.env.step(wait)
-#            if done:
-#                obs = self.env.reset(**kwargs)
-#        return obs
-
-
-#class ResetOnLifeLost(gym.Wrapper):
-#    """
-#    Reset the environment when a life is lost.
-#
-#    Args:
-#        env (Gym Environment): the environment to wrap
-#    """
-#
-#    def __init__(self, env):
-#        super().__init__(env)
-#        self.max_lives = -1
-#    
-#    def step(self, action):
-#        obs, reward, done, info = self.env.step(action)
-#        lives = info['lives']
-#        if self.max_lives == -1:
-#            self.max_lives = lives
-#        elif lives < self.max_lives:
-#            done = True
-#            info['lost_life'] = True
-#        return obs, reward, done, info
-#
-#    def reset(self, **kwargs):
-#        obs = self.env.reset(**kwargs)
-#        self.max_lives = -1
-#        return obs
 
 
 class ResetOnLifeLost(gym.Wrapper):
@@ -277,43 +207,6 @@ class FrameSkip(gym.Wrapper):
         return self.env.reset(**kwargs)
 
 
-class FrameStack(gym.Wrapper):
-    """
-    Stack the last `n_stack` observations.
-
-    Args:
-        env (Gym Environment): the environment to wrap
-        n_stack (int): the number of observations to stack
-    """
-
-    def __init__(self, env, n_stack=4):
-        super().__init__(env)
-        assert n_stack > 0
-        self.n_stack = n_stack
-        self.frames = deque([], maxlen=n_stack)
-        shape = env.observation_space.shape
-        self.observation_space = spaces.Box(
-            low=0,
-            high=255,
-            shape=(shape[0], shape[1], shape[2] * n_stack),
-            dtype=env.observation_space.dtype
-        )
-
-    def reset(self, **kwargs):
-        obs = self.env.reset(**kwargs)
-        for _ in range(self.n_stack):
-            self.frames.append(obs)
-        return self._get_obs()
-
-    def step(self, action):
-        obs, reward, done, info = self.env.step(action)
-        self.frames.append(obs)
-        return self._get_obs(), reward, done, info
-
-    def _get_obs(self):
-        return np.concatenate(self.frames, axis=2)
-
-
 class MarioWrapper(gym.Wrapper):
     def __init__(
         self,
@@ -323,7 +216,7 @@ class MarioWrapper(gym.Wrapper):
         grayscale=False,
         stickiness=0,
         n_skip=1,
-        rewards=None
+        y_pos_reward=False
     ):
         if actions != retro.Actions.ALL:
             env = MarioActionWrapper(env, actions)
@@ -334,19 +227,5 @@ class MarioWrapper(gym.Wrapper):
         env = ResetOnLifeLost(env)
         env = StickyActions(env, stickiness)
         env = FrameSkip(env, n_skip)
-        if rewards is not None:
-            min, max = rewards
-            env = MarioRewardWrapper(env, min_reward=min, max_reward=max)
+        env = MarioRewardWrapper(env, y_pos_reward)
         super().__init__(env)
-
-
-def wrap_env(env):
-    env = MarioActionWrapper(env, retro.Actions.MULTI_DISCRETE)
-    env = ResizeObservation(env, shape=(84, 84))
-    env = GrayScaleObservation(env, keep_dim=True)
-    env = ResetOnLifeLost(env)
-    env = StickyActions(env, stickiness=0.25)
-    env = FrameSkip(env, n_skip=4)
-    env = FrameStack(env, n_stack=4)
-    env = MarioRewardWrapper(env, min_reward=-15, max_reward=15)
-    return env
