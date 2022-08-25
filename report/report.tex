@@ -1,4 +1,4 @@
-\documentclass[11pt,a4paper]{article}
+\documentclass[a4paper]{article}
 \usepackage[a4paper,margin=1in,includefoot]{geometry}
 \usepackage[utf8]{inputenc}
 \usepackage{hyperref}
@@ -11,6 +11,7 @@
 \usepackage{siunitx}
 \usepackage{tabularx}
 \usepackage{booktabs}
+\usepackage{enumitem}
 \usepackage[us,nodayofweek]{datetime}
 \usepackage[style=alphabetic,maxbibnames=99,giveninits]{biblatex}
 \captionsetup{font=footnotesize}
@@ -33,7 +34,7 @@
 \begin{document}
 \maketitle
 
-\section{Introduction}
+\section{Introduction} \label{s:introduction}
 My graduate work is based on the popular game ``Super Mario World''.
 Super Mario is a game that was developed by Nintendo for their SNES\footnote{Super Nintendo Entertainment System}.
 The aim of the game is to complete a number of levels by reaching the “goalpost" for each level.
@@ -56,7 +57,7 @@ For the elaboration of this work I have used the following components and techni
 \end{itemize}
 These different components are discussed in more detail later in this document.
 
-\section{Goals}
+\section{Goals} \label{s:goals}
 The ultimate goal of this project is to train an agent so that he can complete some levels of Super Mario World.
 The aim is to make the agent learn and deal with the obstacles presented in the game.
 Obstacles can consist of obstacles or enemies that must be defeated or dodged.
@@ -68,58 +69,66 @@ The goal is to train an agent to complete level(s) of the game.
 Look at how the agent learns to deal with obstacles presented by the game.
 Test the agent on new/unseen data (in the form of levels the agent hasn't trained on).
 
-\section{Reinforcement Learning}
+\section{Reinforcement Learning} \label{s:reinforcement-learning}
 Reinforcement learning (RL) is an area of machine learning which studies how intelligent agents learn to take actions in an environment by trial and error.
-The agent is not told which actions to take, but must explore for itself which actions result in the highest reward.
-Rewarding good behavior or penalizing bad behavior makes the agent more or less likely to repeat this behavior in the future.
-How the agent interacts with its environment is shown in the agent-environment loop (figure \ref{fig:loop}).
+An agent is not told which actions to take, but must explore for itself which actions result in the highest reward.
+The general idea behind RL is that rewarding good behavior or penalizing bad behavior makes the agent more or less likely to repeat this behavior in the future.
+How the agent interacts with its environment is shown in the agent-environment loop in Figure \ref{fig:loop}.
+
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=0.6\textwidth]{AE_loop}
-    \caption{The agent-environment loop. Image source \url{https://www.gymlibrary.dev}.}
+    \caption{The agent-environment interaction loop. Image source: \url{https://www.gymlibrary.dev}.}
     \label{fig:loop}
 \end{figure}
-\begin{itemize}
-    \item agent = RL model
-    \item environment = game
-    \item action = button input
-    \item state = current frame
-    \item reward = decide if action was good
-\end{itemize}
-In this case an action means pressing buttons on the controller.
-The observation is the next frame of the game after the action has been executed.
-The reward is based on how good or bad the effect of the action was on the environment according to the reward function.
 
-``The main characters of RL are the agent and the environment.
-The environment is the world that the agent lives in and interacts with.
-At every step of interaction, the agent sees a (possibly partial) observation of the state of the world, and then decides on an action to take.
-The environment changes when the agent acts on it, but may also change on its own.
+The agent is trained in episodes which consist of a number of steps.
+At each step, the agent receives the current observation and reward.
+It then chooses an action to perform on the environment.
+The action changes the state of the environment, and the environment returns a new observation and a reward based on how the action influenced the state.
+Each component of the agent-environment interaction is described in more detail below.
+\begin{description}[leftmargin=0cm]
+    \item[Agent.]
+    The decision maker of the process.
+    How the agent chooses its actions is decided by a policy that tries to maximize the some form of cumulative reward.
+    In our case the agent controls Mario and decides which actions he will take.
+    \item[Action.]
+    Agents interact with their environment through actions.
+    In this game, an action is a combination of button presses.
+    The set of all valid actions in an environment is called the \emph{action space}.
+    \item[Environment.]
+    World that the agent lives in (here, the game).
+    The environment is represented by states, which are complete descriptions of the world.
+    \item[Observation.]
+    Part of the state that the agent is able to see (i.e., its immediate surroundings).
+    Observations are, in this case, ``frames'' of the game.
+    A frame is an image of the game; a raster of pixels of the form height\texttimes{}width\texttimes{}color.
+    The \emph{observation space} defines the structure and legitimate values an observation can take.
+    \item[Reward.]
+    A numeric value that describes how good (or bad) the result of an action is on the state of the environment.
+    The value is determined by the reward function (more on rewards in Section \ref{s:reward}).
+\end{description}
 
-The agent also perceives a reward signal from the environment, a number that tells it how good or bad the current world state is.
-The goal of the agent is to maximize its cumulative reward, called return.
-Reinforcement learning methods are ways that the agent can learn behaviors to achieve its goal.''
-
-\section{Preprocessing}
+\section{Preprocessing} \label{s:preprocessing}
 Before we can train our agent a number of preprocessing steps are necessary.
 This includes a transformation of both the action and observation space.
 Most of these steps are based on papers discussing the Arcade Learning Environment (ALE) \cite{bellemare2013arcade,machado2018revisiting}.
 The ALE is a framework that allows people to develop AI agents for Atari\footnote{Atari 2600, originally known as Atari VCS (Video Computer System)} games and is commonly used to benchmark reinforcement learning algorithms.
 Even though the ALE was created for Atari games, most of the preprocessing steps used are also applicable to the SNES (and Super Mario World).
-The following steps are implemented as wrappers around the Gym environment.
 
 \subsection{Action Space}
 By default, the Gym Retro environment for Super Mario World uses a MultiBinary\footnote{\url{https://www.gymlibrary.ml/content/spaces/\#multibinary}} space with 12 elements (buttons).
 Each action contains a value for every button in the action space where 0 (not pressed) or 1 (pressed). This results in $2^{12}=4096$ possible combinations.
 Sticking to the default MultiBinary action space leads to three issues:
 \begin{itemize}
-    \item \emph{Large action space.}
+    \item \textbf{Large action space.}
         Exploration in RL relies on some form of random sampling.
         If the action space is large, it will take longer for the agent to find good actions during exploration.
-    \item \emph{Invalid combinations.}
+    \item \textbf{Invalid combinations.}
         Some combinations of buttons cannot be pressed at the same time (e.g. left and right arrows).
-    \item \emph{Irrelevant buttons.} Some buttons are only used to control the game menu or pause the game and have no effect on the actual gameplay.
+    \item \textbf{Irrelevant buttons.} Some buttons are only used to control the game menu or pause the game and have no effect on the actual gameplay.
 \end{itemize}
-To solve these problems we take a look at the SNES controller in figure \ref{fig:snes-controller}.
+To solve these problems we take a look at the SNES controller in Figure \ref{fig:snes-controller}.
 The game was designed to be played on this controller, so the buttons used in Gym Retro correspond to the buttons on this controller.
 Select, start, and the buttons on the back of the controller are not relevant for our agent.
 The remaining buttons can be split into two clusters, arrow keys and special keys.
@@ -129,8 +138,8 @@ The actions of both discrete spaces are described below.
 In this game the \img{SuperNintendo-Button-X} and \img{SuperNintendo-Button-Y} keys serve the same function, so we only need to include one of them.
 Not pressing a button is also a valid action.
 \begin{itemize}
-    \item \emph{Arrow keys.} none, left (\img{SuperNintendo-Dpad-Left}), right (\img{SuperNintendo-Dpad-Right}), up (\img{SuperNintendo-Dpad-Up}), down (\img{SuperNintendo-Dpad-Down})
-    \item \emph{Special keys.} none, spin (\img{SuperNintendo-Button-A}), jump (\img{SuperNintendo-Button-B}), run/throw (\img{SuperNintendo-Button-X})
+    \item \textbf{Arrow keys.} none, left (\img{SuperNintendo-Dpad-Left}), right (\img{SuperNintendo-Dpad-Right}), up (\img{SuperNintendo-Dpad-Up}), down (\img{SuperNintendo-Dpad-Down})
+    \item \textbf{Special keys.} none, spin (\img{SuperNintendo-Button-A}), jump (\img{SuperNintendo-Button-B}), run/throw (\img{SuperNintendo-Button-X})
 \end{itemize}
 \begin{figure}[htbp]
     \centering
@@ -139,11 +148,11 @@ Not pressing a button is also a valid action.
     \label{fig:snes-controller}
 \end{figure}
 The resulting MultiDiscrete action space contains $5*4 = 20$ different actions.
-So we have reduced the action space by a significant amount without actually restricting the number of options the agent can take.
+So we have reduced the action space by a significant amount while maintaining the necessary actions to play the game.
 
 \subsection{Observation Space}
 \subsubsection{Transform observation}
-To reduce the memory requirement, each observation is rescaled from 256x224 pixels to 84x84 pixels.
+To reduce the memory requirement, each observation is rescaled from 256\texttimes{}224 pixels to 84\texttimes{}84 pixels.
 The color is also converted to grayscale.
 Figure \ref{fig:transformation} shows the result of this transformation.
 Lowering the memory requirement significantly reduces the training time of the agent.
@@ -170,7 +179,7 @@ The agent is trained on pixels, so each observation can be seen as some sort of 
 By using a single frame, the agent cannot perceive the direction or velocity of movement (Is Mario going up or down? How fast is Mario moving?).
 To solve this we ``stack'' four subsequent observations on top of each other and use the resulting observation for training.
 Each observation is placed in a queue and concatenated with the previous three most recent observations.
-On figure \ref{fig:stack} we can see based on the last four observations that Mario is jumping to the right.
+On Figure \ref{fig:stack} we can see based on the last four observations that Mario is jumping to the right.
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=.6\textwidth]{stacked}
@@ -184,7 +193,6 @@ As such, it is unnecessary to input an action each frame (also human players do 
 To create the effect of ``skipping'' frames we repeat each action over four frames and sum the accumulated rewards.
 This can be seen as the equivalent of a human player holding the button for a few frames.
 This change brings the agent closer to human behaviour and as an additional bonus speeds up the training of the agent.
-\textbf{\textcolor{red}{afbeelding}}
 
 \subsection{Other}
 \subsubsection{Sticky Actions}
@@ -202,7 +210,7 @@ Since no signal has been sent, the agent does not understand it is no longer in 
 To avoid this we want to terminate the episode after a single life is lost.
 Ending the episode after a life is lost also creates a positive side effect; the longer the episode continues, the more rewards the agent can gain, so the agent learns to avoid death without explicitly defining a penalty for losing a life.
 
-\section{Reward}
+\section{Reward} \label{s:reward}
 The goal of an agent in reinforcement learning is to maximize its cumulative reward.
 After each step the agent receives a reward from the environment, which describes how good (or bad) the action taken during this step was.
 The value of this reward is determined by the reward function.
@@ -238,7 +246,7 @@ Combining both gives us the reward $r_{t}$ at each step $t$.
 \[r_{t} = x_{t} - x_{t-1} - 1\]
 
 
-\section{Algorithm}
+\section{Algorithm} \label{s:algorithm}
 With the preprocessing and reward design completed, only the choice of algorithm remains before we can start training.
 Reinforcement learning algorithms can be divided into two branches: \emph{Model-Based RL} and \emph{Model-Free RL}.
 In model-based RL the agent uses predictions of the environment response.
@@ -284,7 +292,7 @@ Entropy coeff. ($c_1$) & 0.001 & Helps prevent premature convergence of one acti
 \label{table:hyperparams}
 \end{table}
 
-\section{Training \& Results}
+\section{Training \& Results} \label{s:training-results}
 \subsection{Model A}
 Trained for 25 million time steps on the level 'YoshiIsland2'.
 Most basic level (avoid enemies, jump over pit).
