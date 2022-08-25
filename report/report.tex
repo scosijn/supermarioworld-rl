@@ -162,13 +162,13 @@ Lowering the memory requirement significantly reduces the training time of the a
         \centering
         \includegraphics[height=6cm]{original_crop}
         \caption{Original}
-        \label{fig:sub1}
+        \label{fig:transformation:sub1}
     \end{subfigure}%
     \begin{subfigure}{.5\textwidth}
         \centering
         \includegraphics[height=6cm]{grayscale_crop}
         \caption{Transformed}
-        \label{fig:sub2}
+        \label{fig:transformation:sub2}
     \end{subfigure}
     \caption{Pixel Transformation.}
     \label{fig:transformation}
@@ -294,11 +294,22 @@ Entropy coeff. ($c_1$) & 0.001 & Helps prevent premature convergence of one acti
 
 \section{Training \& Results} \label{s:training-results}
 \subsection{Model A}
-Trained for 25 million time steps on the level 'YoshiIsland2'.
+Trained for 25 million time steps on the level 'YoshiIsland1'.
 Most basic level (avoid enemies, jump over pit).
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=\textwidth]{plot_model_a.png}
+    \begin{subfigure}{.5\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{PPO_YoshiIsland1_len}
+        \label{fig:result1:sub1}
+    \end{subfigure}%
+    \begin{subfigure}{.5\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{PPO_YoshiIsland1_rew}
+        \label{fig:result1:sub2}
+    \end{subfigure}
+    \caption{Training results PPO YoshiIsland1.}
+    \label{fig:result1}
 \end{figure}
 
 \printbibliography
