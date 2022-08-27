@@ -24,8 +24,7 @@ def make_retro_env(state, n_envs=1):
             screen_size=(84, 84),
             grayscale=True,
             stickiness=0.25,
-            n_skip=4,
-            y_pos_reward=True
+            n_skip=4
         )
         env = Monitor(env)
         return env
@@ -50,7 +49,7 @@ def PPO_model(env, log='./tensorboard/'):
     model = PPO(policy='CnnPolicy',
                 env=env,
                 learning_rate=1e-4,
-                n_steps=512,
+                n_steps=1024,
                 batch_size=512,
                 n_epochs=2,
                 clip_range=0.1,
@@ -114,16 +113,12 @@ def random_agent(env):
 
 
 def main():
-    n_envs = 8
-    total_timesteps = 25_000_000
-    save_freq = (0.2 * total_timesteps) // n_envs
-    env = make_retro_env('DonutPlains1', n_envs=n_envs)
+    env = make_retro_env('YoshiIsland1', n_envs=8)
     model = PPO_model(env)
     train_model(model,
-                total_timesteps=total_timesteps,
-                save_freq=save_freq,
-                name_prefix='PPO_DonutPlains1')
-    model.save('./models/PPO_DonutPlains1')
+                total_timesteps=25_000_000,
+                name_prefix='PPO_YoshiIsland1_1024')
+    model.save('./models/PPO_YoshiIsland1_1024')
     env.close()
 
 

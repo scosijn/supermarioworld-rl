@@ -1,9 +1,7 @@
-from cgitb import reset
 import gym
 import retro
 import itertools
 import numpy as np
-from collections import deque
 from gym import spaces
 from gym.wrappers import ResizeObservation
 from gym.wrappers import GrayScaleObservation
