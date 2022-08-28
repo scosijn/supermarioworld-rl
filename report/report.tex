@@ -38,32 +38,26 @@
 This graduate work is based on the popular game Super Mario World, developed by Nintendo for the SNES\footnote{Super Nintendo Entertainment System}.
 The game consists of many different levels, during which the objective is to reach the ``goalpost'' to advance to the next level before the timer runs out.
 To achieve this Mario will have to jump over and on top of platforms, avoid obstacles, and defeat enemies.
-
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=0.75\textwidth]{start-screen}
+    \includegraphics[width=.6\textwidth]{start-screen}
     \caption{Screenshot of the Super Mario World start screen.}
     \label{fig:smw}
 \end{figure}
 
-The goal of this work is to train an AI to play the game using reinforcement learning.
+The goal of this work is to teach an AI how to play the game using reinforcement learning.
+We train an agent on some of the more basic levels and observe how it learns to deal with the various obstacles presented by the game.
+Afterwards we can test how the agent performs on new/unseen data (in the form of levels the agent did not train on).
 For this task we use OpenAI Gym\footnote{\url{https://github.com/openai/gym}}---a library for developing and comparing reinforcement learning algorithms---and Gym Retro\footnote{\url{https://github.com/openai/retro}}---game integrations for Gym, including Super Mario World.
-
-The aim is to make the agent learn and deal with the obstacles presented in the game.
-Obstacles can consist of obstacles or enemies that must be defeated or dodged.
-Look at how the agent learns to deal with obstacles presented by the game.
-Test the agent on new/unseen data (in the form of levels the agent hasn't trained on).
-
 
 \section{Reinforcement Learning} \label{s:reinforcement-learning}
 Reinforcement learning (RL) is an area of machine learning which studies how intelligent agents learn to take actions in an environment by trial and error.
 An agent is not told which actions to take, but must explore for itself which actions result in the highest reward.
 The general idea behind RL is that rewarding good behavior or penalizing bad behavior makes the agent more or less likely to repeat this behavior in the future.
 How the agent interacts with its environment is shown in the agent-environment loop in Figure \ref{fig:loop}.
-
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=0.6\textwidth]{AE_loop}
+    \includegraphics[width=.6\textwidth]{AE_loop}
     \caption{The agent-environment interaction loop. Image source: \url{https://www.gymlibrary.dev}.}
     \label{fig:loop}
 \end{figure}
@@ -138,7 +132,7 @@ So we have reduced the action space by a significant amount while maintaining th
 
 \subsection{Observation Space}
 \subsubsection{Transform observation}
-To reduce the memory requirement, each observation is resized to 84\texttimes{}84 pixels.
+To reduce the memory requirement, each observation is resized to 84 by 84 pixels.
 The color is also converted to grayscale.
 Figure \ref{fig:transformation} shows the result of this transformation.
 Lowering the memory requirement significantly reduces the training time of the agent.
@@ -156,7 +150,7 @@ Lowering the memory requirement significantly reduces the training time of the a
         \caption{Transformed}
         \label{fig:transformation:sub2}
     \end{subfigure}
-    \caption{Pixel Transformation.}
+    \caption{Transforming the observation. Resized to 84\texttimes{}84 pixels and converted to grayscale.}
     \label{fig:transformation}
 \end{figure}
 
@@ -184,8 +178,8 @@ On Figure \ref{fig:stack} we can see based on the last four observations that Ma
 \subsubsection{Episodic Life}
 In Gym environments, the current episode ends when the ``done'' signal is received.
 However, in this game the player starts with five lives, so this signal is only sent once the life counter reaches zero.
-Every time Mario dies the game exits the current level and returns to the menu.
-Since no signal has been sent, the agent does not understand it is no longer in the intended level, and as a result can get stuck in the game menu or even enter another level by accident.
+Every time Mario dies the game exits the current level and returns to the level selection menu.
+Since no signal has been sent, the agent does not understand it is no longer in the intended level, and as a result can get stuck in the menu or even enter another level by accident.
 To avoid this we want to terminate the episode after a single life is lost.
 Ending the episode after a life is lost also creates a positive side effect; the longer the episode continues, the more rewards the agent can gain, so the agent learns to avoid death without explicitly defining a penalty for losing a life.
 
@@ -235,22 +229,22 @@ Combining both gives us the reward $r_{t}$ at each step $t$.
 \section{Algorithm} \label{s:algorithm}
 With the preprocessing and reward design completed, only the choice of algorithm remains before we can start training.
 Reinforcement learning algorithms can be divided into two branches: \emph{Model-Based RL} and \emph{Model-Free RL}.
-In model-based RL the agent uses predictions of the environment response.
-This allows the agent to plan ahead, seeing what would happen for a range of possible actions.
-The main benefit of model-based algrithms is sample efficiency.
-The downside is that a ground-truth model of the environment is usually not available
-In contrast, model-free algorithms sample purely from experience and never use generated predictions of the next state/reward.
-This makes them easier to implement and tune but also less sample efficient.
-In the case of Super Mario World, we opt for a model-free algorithm.
+In model-based RL the agent uses a model---a function which predicts how the environment will react to actions---to make decisions.
+The model can either be known beforehand (not the case here) or learned through interaction with the environment.
+The main advantage of model-based algorithms is that they are sample efficient---they learn the most out of each experience.
+By contrast, model-free algorithms sample purely from experience instead of using predictions of the next state.
+In general, model-free methods are computationally cheaper than having to learn a model of the environment, with the trade-off of being less sample efficient.
+In the case of Super Mario World we opt for a model-free approach because the policy is easier to learn than the model and interaction with the environment is fast.
 
-In model-free RL there are two main approaches to training agents: \emph{Q-Learning} and \emph{Policy Optimization}.
+Model-free RL can be further divided into two main approaches: \emph{Q-Learning} and \emph{Policy Optimization}.
+\textbf{\textcolor{red}{X.}}
 Q-learning methods learn an approximator for the optimal action-value function.
 In general, Q-learning methods are more sample efficient because they can reuse old data more effectively, while policy optimization methods are more stable and reliable.
 
 Proximal Policy Optimization (PPO) \cite{schulman2017proximal} is a state-of-the-art policy optimization algorithm.
+\textbf{\textcolor{red}{X.}}
 PPO is motivated by the question: ``How can we take the biggest possible improvement step on a policy using the data we currently have, without stepping so far that we accidentally cause performance collapse?''
 PPO-clip (the most common variant of PPO, also the variant implemented in the Stable Baselines library\footnote{\url{https://github.com/DLR-RM/stable-baselines3}}) achieves this with clipping in the objective function to remove incentives for the new policy to get far from the old policy.
-
 PPO trains a stochastic policy in an on-policy way.
 This means that it explores by sampling actions according to the latest version of its stochastic policy.
 The amount of randomness in action selection depends on both initial conditions and the training procedure.
@@ -258,23 +252,23 @@ Over the course of training, the policy typically becomes progressively less ran
 
 \subsection{Hyperparameters}
 The following hyperparameters for PPO were used to train the agent.
-Unmentioned parameters use the default value defined in the Stable Baselines library.
+Unmentioned hyperparameters use the default value defined in the Stable Baselines library.
 \begin{table}[htbp]
 \centering
 \begin{tabularx}{\linewidth}{llX}
 \toprule
 Hyperparameter & Value & Description \tabularnewline
 \midrule
-Learning rate & \num{1e-4} & Step size of the Adam optimizer. \tabularnewline
-Horizon (T) & 512 & Number of steps to run for each environment per update. Rollout buffer size is equal to horizon $\times$ environments. \tabularnewline
-Num. environments & 8 & Number of environments running in parallel. \tabularnewline
-Minibatch size & 512 & Steps of interaction for the agent and the environment in each epoch. \tabularnewline
-Num. epochs & 2 & Number of epochs of interaction to perform. \tabularnewline
-Clipping range ($\epsilon$) & 0.1 & Hyperparameter for clipping in the policy objective. \tabularnewline
-Entropy coeff. ($c_1$) & 0.001 & Helps prevent premature convergence of one action probability dominating the policy and preventing exploration \tabularnewline
+learning\_rate & \num{1e-4} & Learning rate of the Adam optimizer. \tabularnewline
+n\_steps & 512 & Number of steps of experience to collect for each environment before a policy update. Buffer size is equal to n\_steps $\times$ n\_envs. \tabularnewline
+n\_envs & 8 & Number of environment copies running in parallel. \tabularnewline
+batch\_size & 512 & Minibatch size. How many experiences to use for each gradient update. Must be a fraction of buffer size. \tabularnewline
+n\_epochs & 2 & Number of epochs to run for each minibatch. Less epochs will ensure more stable updates, at the cost of slower learning. \tabularnewline
+clip\_range & 0.1 & Clipping parameter ($\epsilon$). A larger clipping range means the new policy can diverge more from the old policy. Small values will result in more stable updates, but will also slow the learning process. \tabularnewline
+ent\_coef & 0.001 & Entropy coefficient. Prevents the policy from converging too quickly. Larger values keep the policy random for longer, resulting in more exploration. \tabularnewline
 \bottomrule
 \end{tabularx}
-\caption{PPO hyperparameters.}
+\caption{PPO hyperparameters used for training the Super Mario World agent.}
 \label{table:hyperparams}
 \end{table}
 
