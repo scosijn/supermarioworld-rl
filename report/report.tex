@@ -46,19 +46,14 @@ To achieve this Mario will have to jump over and on top of platforms, avoid obst
     \label{fig:smw}
 \end{figure}
 
-The goal of this work is to train an AI to play the game.
-Using reinforcement learning, and agent will learn to complete some levels of the game.
+The goal of this work is to train an AI to play the game using reinforcement learning.
+For this task we use OpenAI Gym\footnote{\url{https://github.com/openai/gym}}---a library for developing and comparing reinforcement learning algorithms---and Gym Retro\footnote{\url{https://github.com/openai/retro}}---game integrations for Gym, including Super Mario World.
 
-The ultimate goal of this project is to train an agent so that he can complete some levels of Super Mario World.
 The aim is to make the agent learn and deal with the obstacles presented in the game.
 Obstacles can consist of obstacles or enemies that must be defeated or dodged.
 Look at how the agent learns to deal with obstacles presented by the game.
 Test the agent on new/unseen data (in the form of levels the agent hasn't trained on).
 
-\begin{itemize}
-    \item OpenAI Gym\footnote{\url{https://github.com/openai/gym}} \cite{brockman2016openai} - RL library
-    \item Gym Retro\footnote{\url{https://github.com/openai/retro/}} - Game integration for Gym
-\end{itemize}
 
 \section{Reinforcement Learning} \label{s:reinforcement-learning}
 Reinforcement learning (RL) is an area of machine learning which studies how intelligent agents learn to take actions in an environment by trial and error.
@@ -320,8 +315,5 @@ Most basic level (avoid enemies, jump over pit).
     \label{fig:result2}
 \end{figure}
 
-\begingroup
-\setlength{\emergencystretch}{1em}
 \printbibliography
-\endgroup
 \end{document}
