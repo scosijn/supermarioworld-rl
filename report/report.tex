@@ -132,8 +132,8 @@ So we have reduced the action space by a significant amount while maintaining th
 
 \subsection{Observation Space}
 \subsubsection{Transform observation}
-To reduce the memory requirement, each observation is resized to 84 by 84 pixels.
-The color is also converted to grayscale.
+To reduce the memory requirement, each observation is resized from 256\texttimes{}224 to 84\texttimes{}84 pixels.
+The color is also converted from RGB to grayscale.
 Figure \ref{fig:transformation} shows the result of this transformation.
 Lowering the memory requirement significantly reduces the training time of the agent.
 \begin{figure}[htbp]
@@ -155,22 +155,21 @@ Lowering the memory requirement significantly reduces the training time of the a
 \end{figure}
 
 \subsubsection{Skip frames}
-SNES games run at 60 FPS (frames per second), which means there is very little change from frame to frame.
-As such, it is unnecessary to input an action each frame (also human players do not press 60 buttons each second).
-To create the effect of ``skipping'' frames we repeat each action over four frames and sum the accumulated rewards.
-This can be seen as the equivalent of a human player holding the button for a few frames.
-This change brings the agent closer to human behaviour and as an additional bonus speeds up the training of the agent.
+Super Mario World runs at 60 FPS (frames per second), which means there is little change in the game from frame to frame.
+As a result, there is no need to input a new action for each frame.
+Having the agent decide on a new action every few frames instead of every single frame speeds up the execution, allowing it to play more episodes during training.
+To create this effect of ``skipping'' frames each action is repeated over four frames and only the last frame is returned as observation, together with the sum of the accumulated rewards.
 
 \subsubsection{Stack frames}
 The agent is trained on pixels, so each observation can be seen as some sort of screenshot of the game state.
 By using a single frame, the agent cannot perceive the direction or velocity of movement (Is Mario going up or down? How fast is Mario moving?).
-To solve this we ``stack'' four subsequent observations on top of each other and use the resulting observation for training.
-Each observation is placed in a queue and concatenated with the previous three most recent observations.
-On Figure \ref{fig:stack} we can see based on the last four observations that Mario is jumping to the right.
+To solve this we ``stack'' four subsequent observations and use the result as input for the agent.
+Each observation is concatenated with the previous three most recent observations.
+In Figure \ref{fig:stack} we can see based on a stack of four observations that Mario is jumping to the right.
 \begin{figure}[htbp]
     \centering
     \includegraphics[height=6cm]{stacked}
-    \caption{Stacking four subsequent observations.}
+    \caption{A frame stack of four subsequent observations.}
     \label{fig:stack}
 \end{figure}
 
