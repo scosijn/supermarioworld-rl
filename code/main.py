@@ -1,9 +1,9 @@
+import os
 import time
 import retro
 import numpy as np
 from wrappers import MarioWrapper
 from callbacks import ProgressBar, CheckpointCallback
-from utils import plot_rollout
 from stable_baselines3 import PPO
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.vec_env import SubprocVecEnv, VecFrameStack
@@ -87,11 +87,15 @@ def train_model(
         )
 
 
-def test_model(model, env):
+def test_model(model, state, record=False, record_path='./recordings/'):
+    env = make_retro_env(state)
     obs = env.reset()
+    if record:
+        os.makedirs(record_path, exist_ok=True)
+        env.env_method('record_movie', f'{record_path}{state}.bk2')
     done = False
     while not done:
-        action, _ = model.predict(obs)
+        action, _ = model.predict(obs, deterministic=True)
         obs, _, done, _ = env.step(action)
         env.render()
         time.sleep(0.01)
