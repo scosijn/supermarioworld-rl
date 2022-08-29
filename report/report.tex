@@ -183,9 +183,9 @@ To avoid this we want to terminate the episode after a single life is lost.
 Ending the episode after a life is lost also creates a positive side effect; the longer the episode continues, the more rewards the agent can gain, so the agent learns to avoid death without explicitly defining a penalty for losing a life.
 
 \subsubsection{Sticky Actions}
-Super Mario World is deterministic. 
-Enemies and other moving objects will always appear in the same location at the same timestamp of a level.
-We want the AI to learn a policy that will work on other levels, not just memorize one action sequence in a single level, so we need to introduce some form of stochasticity.
+Super Mario World is largely deterministic. 
+Most enemies and other moving objects will always appear in the same location at the same timestamp of a level.
+We want the agent to learn to make good decisions in various game scenarios, not just memorize one action sequence in a single level, so we need to introduce some form of stochasticity.
 With ``sticky actions'' \cite{machado2018revisiting} each time the agent chooses a new action there is a 25\% chance it will repeat the previous action instead.
 This makes it so the agent is never sure where it will end up at any given time, and forces it to act accordingly.
 
