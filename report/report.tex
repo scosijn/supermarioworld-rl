@@ -236,6 +236,12 @@ In general, model-free methods are computationally cheaper than having to learn 
 In the case of Super Mario World we opt for a model-free approach because the policy is easier to learn than the model and interaction with the environment is fast.
 
 Model-free RL can be further divided into two main approaches: \emph{Q-Learning} and \emph{Policy Optimization}.
+Q-Learning methods learn (or approximate) the optimal action-value function.
+Q-Learning methods tend to be less stable
+But when optimal values are found they tend to be more sample efficient than policy optimization alternatives, because they can reuse old samples more effectively.
+
+The main advantage of policy optimization methods is that they are stable and reliable.
+
 \textbf{\textcolor{red}{X.}}
 Q-learning methods learn an approximator for the optimal action-value function.
 In general, Q-learning methods are more sample efficient because they can reuse old data more effectively, while policy optimization methods are more stable and reliable.
@@ -273,8 +279,7 @@ ent\_coef & 0.001 & Entropy coefficient. Prevents the policy from converging too
 
 \section{Training \& Results} \label{s:training-results}
 \subsection{Model A}
-Trained for 25 million time steps on the level 'YoshiIsland1'.
-Most basic level (avoid enemies, jump over pit).
+This model was trained for 25 million timesteps on the first level of the game, ``Yoshi's Island 1''.
 \begin{figure}[htbp]
     \centering
     \begin{subfigure}{.5\textwidth}
@@ -287,7 +292,7 @@ Most basic level (avoid enemies, jump over pit).
         \includegraphics[width=\textwidth]{PPO_YoshiIsland1_rew}
         \label{fig:result1:sub2}
     \end{subfigure}
-    \caption{Training results PPO YoshiIsland1.}
+    \caption{Results of training a PPO model on the level YoshiIsland1 for 25M timesteps.}
     \label{fig:result1}
 \end{figure}
 
@@ -304,7 +309,7 @@ Most basic level (avoid enemies, jump over pit).
         \includegraphics[width=\textwidth]{PPO_YoshiIsland2_rew}
         \label{fig:result2:sub2}
     \end{subfigure}
-    \caption{Training results PPO YoshiIsland2.}
+    \caption{Results of training a PPO model on the level YoshiIsland2 for 25M timesteps.}
     \label{fig:result2}
 \end{figure}
 
