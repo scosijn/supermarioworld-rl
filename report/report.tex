@@ -230,30 +230,29 @@ With the preprocessing and reward design completed, only the choice of algorithm
 Reinforcement learning algorithms can be divided into two branches: \emph{Model-Based RL} and \emph{Model-Free RL}.
 In model-based RL the agent uses a model---a function which predicts how the environment will react to actions---to make decisions.
 The model can either be known beforehand (not the case here) or learned through interaction with the environment.
-The main advantage of model-based algorithms is that they are sample efficient---they learn the most out of each experience.
+The main advantage of model-based algorithms is that they are sample efficient; they learn the most out of each experience.
 By contrast, model-free algorithms sample purely from experience instead of using predictions of the next state.
 In general, model-free methods are computationally cheaper than having to learn a model of the environment, with the trade-off of being less sample efficient.
 In the case of Super Mario World we opt for a model-free approach because the policy is easier to learn than the model and interaction with the environment is fast.
 
 Model-free RL can be further divided into two main approaches: \emph{Q-Learning} and \emph{Policy Optimization}.
-Q-Learning methods learn (or approximate) the optimal action-value function.
-Q-Learning methods tend to be less stable
-But when optimal values are found they tend to be more sample efficient than policy optimization alternatives, because they can reuse old samples more effectively.
-
+Q-learning methods try to learn or approximate the optimal action-value function.
+This means they learn the value of state-action pairs and take the action that leads to the most valuable state.
+Finding the optimal action-value function will also result in the optimal policy.
+Q-learning methods (with function approximation) tend to be less stable and are not guaranteed to converge.
+However, when they work they are more sample efficient than policy optimization techniques, because they can reuse old data more effectively.
+Policy optimization methods try to directly optimize the policy.
+The probabilities of actions are modeled using a neural network.
+Through interaction of the agent with the environment the parameters of the network are tweaked, so that good actions are more likely to be sampled in the future.
 The main advantage of policy optimization methods is that they are stable and reliable.
 
-\textbf{\textcolor{red}{X.}}
-Q-learning methods learn an approximator for the optimal action-value function.
-In general, Q-learning methods are more sample efficient because they can reuse old data more effectively, while policy optimization methods are more stable and reliable.
-
 Proximal Policy Optimization (PPO) \cite{schulman2017proximal} is a state-of-the-art policy optimization algorithm.
-\textbf{\textcolor{red}{X.}}
+\textbf{X.}
 PPO is motivated by the question: ``How can we take the biggest possible improvement step on a policy using the data we currently have, without stepping so far that we accidentally cause performance collapse?''
-PPO-clip (the most common variant of PPO, also the variant implemented in the Stable Baselines library\footnote{\url{https://github.com/DLR-RM/stable-baselines3}}) achieves this with clipping in the objective function to remove incentives for the new policy to get far from the old policy.
-PPO trains a stochastic policy in an on-policy way.
-This means that it explores by sampling actions according to the latest version of its stochastic policy.
-The amount of randomness in action selection depends on both initial conditions and the training procedure.
-Over the course of training, the policy typically becomes progressively less random, as the update rule encourages it to exploit rewards that it has already found.
+It achieves this by introducing a new hyperparameter, $\epsilon$, which defines the clipping range.
+The use of this parameter restricts the probability ratio---a measure of the difference between old and new policy---to the interval $[1-\epsilon,1+\epsilon]$.
+\textbf{X.}
+PPO-clip (the most common variant of PPO, also the variant implemented in the Stable Baselines\footnote{\url{https://github.com/DLR-RM/stable-baselines3}} library used for this work) achieves this with clipping in the objective function to remove incentives for the new policy to get far from the old policy.
 
 \subsection{Hyperparameters}
 The following hyperparameters for PPO were used to train the agent.
