@@ -49,7 +49,7 @@ def PPO_model(env, log='./tensorboard/'):
     model = PPO(policy='CnnPolicy',
                 env=env,
                 learning_rate=1e-4,
-                n_steps=1024,
+                n_steps=512,
                 batch_size=512,
                 n_epochs=2,
                 clip_range=0.1,
@@ -117,13 +117,8 @@ def random_agent(env):
 
 
 def main():
-    env = make_retro_env('YoshiIsland1', n_envs=8)
-    model = PPO_model(env)
-    train_model(model,
-                total_timesteps=25_000_000,
-                name_prefix='PPO_YoshiIsland1_1024')
-    model.save('./models/PPO_YoshiIsland1_1024')
-    env.close()
+    model = PPO.load('./models/PPO_YoshiIsland2')
+    test_model(model, 'YoshiIsland2')
 
 
 if __name__ == '__main__':
