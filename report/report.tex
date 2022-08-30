@@ -140,13 +140,13 @@ Lowering the memory requirement significantly reduces the training time of the a
     \centering
     \begin{subfigure}{.5\textwidth}
         \centering
-        \includegraphics[height=6.35cm]{original}
+        \includegraphics[height=5cm]{original}
         \caption{Original}
         \label{fig:transformation:sub1}
     \end{subfigure}%
     \begin{subfigure}{.5\textwidth}
         \centering
-        \includegraphics[height=6.35cm]{grayscale}
+        \includegraphics[height=5cm]{grayscale}
         \caption{Transformed}
         \label{fig:transformation:sub2}
     \end{subfigure}
@@ -168,7 +168,7 @@ Each observation is concatenated with the previous three most recent observation
 In Figure \ref{fig:stack} we can see based on a stack of four observations that Mario is jumping to the right.
 \begin{figure}[htbp]
     \centering
-    \includegraphics[height=6cm]{stacked}
+    \includegraphics[height=5cm]{stacked}
     \caption{A frame stack of four subsequent observations.}
     \label{fig:stack}
 \end{figure}
@@ -283,12 +283,12 @@ In this model the agent was trained for 25 million timesteps on the first level 
 Figure \ref{fig:result1} shows the mean episode length and reward during training.
 \begin{figure}[htbp]
     \centering
-    \begin{subfigure}{.5\textwidth}
+    \begin{subfigure}{.45\textwidth}
         \centering
         \includegraphics[width=\textwidth]{PPO_YoshiIsland1_len}
         \label{fig:result1:sub1}
     \end{subfigure}%
-    \begin{subfigure}{.5\textwidth}
+    \begin{subfigure}{.45\textwidth}
         \centering
         \includegraphics[width=\textwidth]{PPO_YoshiIsland1_rew}
         \label{fig:result1:sub2}
@@ -297,17 +297,23 @@ Figure \ref{fig:result1} shows the mean episode length and reward during trainin
     \label{fig:result1}
 \end{figure}
 
-\noindent Video of the agent playing the first level: \href{https://user-images.githubusercontent.com/17729237/187476061-c6c80b38-291d-4d32-b37c-6c923a414eeb.mp4}{\color{blue}{Yoshi's Island 1}}
+We observe a linear increase in both the episode length and reward as training goes on.
+The increase in length and reward follow the same trend, which means the agent is increasing its reward by staying alive longer and progressing further in the level.
+After 25 million timesteps the agent has learned how to complete this level.
+
+\bigbreak \noindent Video of the agent playing the first level: \href{https://user-images.githubusercontent.com/17729237/187476061-c6c80b38-291d-4d32-b37c-6c923a414eeb.mp4}{\color{blue}{Yoshi's Island 1}}
 
 \subsection{Model II}
+The second model is a continuation of the first.
+The agent of the first model continued training for another 25 million timesteps, but this time on the second level of the game, ``Yoshi's Island 2'.
 \begin{figure}[htbp]
     \centering
-    \begin{subfigure}{.5\textwidth}
+    \begin{subfigure}{.45\textwidth}
         \centering
         \includegraphics[width=\textwidth]{PPO_YoshiIsland2_len}
         \label{fig:result2:sub1}
     \end{subfigure}%
-    \begin{subfigure}{.5\textwidth}
+    \begin{subfigure}{.45\textwidth}
         \centering
         \includegraphics[width=\textwidth]{PPO_YoshiIsland2_rew}
         \label{fig:result2:sub2}
@@ -315,7 +321,13 @@ Figure \ref{fig:result1} shows the mean episode length and reward during trainin
     \caption{Results of training on the level YoshiIsland2 for 25M timesteps.}
     \label{fig:result2}
 \end{figure}
-\noindent Video of the agent playing the second level: \href{https://user-images.githubusercontent.com/17729237/187476212-73ea3e18-d42b-4225-8ae2-7bb87132dab3.mp4}{\color{blue}{Yoshi's Island 2}}
+
+On the right side of Figure \ref{fig:result2} we see that the agent hits a peak in reward relatively early on in the training process.
+As training continues the reward fluctuates and ends up at roughly the same spot towards the end.
+On the left side we see that the episode length decreases.
+The agent reaches a similar reward in shorter episodes (learns to complete the level faster).
+
+\bigbreak \noindent Video of the agent playing the second level: \href{https://user-images.githubusercontent.com/17729237/187476212-73ea3e18-d42b-4225-8ae2-7bb87132dab3.mp4}{\color{blue}{Yoshi's Island 2}}
 
 \printbibliography
 \end{document}
