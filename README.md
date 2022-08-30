@@ -1,4 +1,9 @@
 # Super Mario World AI
+## Demo
+https://user-images.githubusercontent.com/17729237/187476061-c6c80b38-291d-4d32-b37c-6c923a414eeb.mp4
+
+https://user-images.githubusercontent.com/17729237/187476212-73ea3e18-d42b-4225-8ae2-7bb87132dab3.mp4
+
 ## Installation
 ### Prerequisites
 - Python 3.8
