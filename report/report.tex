@@ -47,8 +47,8 @@ To achieve this Mario will have to jump over and on top of platforms, avoid obst
 
 The goal of this work is to teach an AI how to play the game using reinforcement learning.
 We train an agent on some of the more basic levels and observe how it learns to deal with the various obstacles presented by the game.
-Afterwards we can test how the agent performs on new/unseen data (in the form of levels the agent did not train on).
-For this task we use OpenAI Gym\footnote{\url{https://github.com/openai/gym}}---a library for developing and comparing reinforcement learning algorithms---and Gym Retro\footnote{\url{https://github.com/openai/retro}}---game integrations for Gym, including Super Mario World.
+Afterwards we evaluate how the agent performs on those levels and see if it can successfully complete them.
+For this task we use OpenAI Gym\footnote{\url{https://github.com/openai/gym}} (a library for developing and comparing reinforcement learning algorithms) and Gym Retro\footnote{\url{https://github.com/openai/retro}} (additional game integrations for Gym, including Super Mario World).
 
 \section{Reinforcement Learning} \label{s:reinforcement-learning}
 Reinforcement learning (RL) is an area of machine learning which studies how intelligent agents learn to take actions in an environment by trial and error.
@@ -140,13 +140,13 @@ Lowering the memory requirement significantly reduces the training time of the a
     \centering
     \begin{subfigure}{.5\textwidth}
         \centering
-        \includegraphics[height=6.35cm]{original_crop}
+        \includegraphics[height=6.35cm]{original}
         \caption{Original}
         \label{fig:transformation:sub1}
     \end{subfigure}%
     \begin{subfigure}{.5\textwidth}
         \centering
-        \includegraphics[height=6.35cm]{grayscale_crop}
+        \includegraphics[height=6.35cm]{grayscale}
         \caption{Transformed}
         \label{fig:transformation:sub2}
     \end{subfigure}
@@ -228,7 +228,7 @@ Combining both gives us the reward $r_{t}$ at each step $t$.
 \section{Algorithm} \label{s:algorithm}
 With the preprocessing and reward design completed, only the choice of algorithm remains before we can start training.
 Reinforcement learning algorithms can be divided into two branches: \emph{Model-Based RL} and \emph{Model-Free RL}.
-In model-based RL the agent uses a model---a function which predicts how the environment will react to actions---to make decisions.
+In model-based RL the agent uses a model (a function which predicts how the environment will react to actions) to make decisions.
 The model can either be known beforehand (not the case here) or learned through interaction with the environment.
 The main advantage of model-based algorithms is that they are sample efficient; they learn the most out of each experience.
 By contrast, model-free algorithms sample purely from experience instead of using predictions of the next state.
@@ -247,12 +247,13 @@ Through interaction of the agent with the environment the parameters of the netw
 The main advantage of policy optimization methods is that they are stable and reliable.
 
 Proximal Policy Optimization (PPO) \cite{schulman2017proximal} is a state-of-the-art policy optimization algorithm.
-\textbf{X.}
-PPO is motivated by the question: ``How can we take the biggest possible improvement step on a policy using the data we currently have, without stepping so far that we accidentally cause performance collapse?''
+PPO updates policies by taking the largest possible step to improve performance, without stepping so far that it accidentally causes the performance to collapse.
 It achieves this by introducing a new hyperparameter, $\epsilon$, which defines the clipping range.
-The use of this parameter restricts the probability ratio---a measure of the difference between old and new policy---to the interval $[1-\epsilon,1+\epsilon]$.
-\textbf{X.}
-PPO-clip (the most common variant of PPO, also the variant implemented in the Stable Baselines\footnote{\url{https://github.com/DLR-RM/stable-baselines3}} library used for this work) achieves this with clipping in the objective function to remove incentives for the new policy to get far from the old policy.
+The use of this parameter restricts the probability ratio (a measure of the difference between old and new policy) to the interval $[1-\epsilon,1+\epsilon]$.
+This clipping puts a constraint on how far the new policy can be removed from the old to avoid destructively large policy updates.
+Some advantages of PPO are: stable and reliable, easy to tune (not too reliant on finding the best hyperparameters), easy to parallelize by collecting experience from multiple copies of an environment and processing it in batches;
+which makes it a good choice for this project.
+We use the implementation of PPO from the Stable Baselines3 library\footnote{\url{https://github.com/DLR-RM/stable-baselines3}}.
 
 \subsection{Hyperparameters}
 The following hyperparameters for PPO were used to train the agent.
@@ -277,8 +278,9 @@ ent\_coef & 0.001 & Entropy coefficient. Prevents the policy from converging too
 \end{table}
 
 \section{Training \& Results} \label{s:training-results}
-\subsection{Model A}
-This model was trained for 25 million timesteps on the first level of the game, ``Yoshi's Island 1''.
+\subsection{Model I}
+In this model the agent was trained for 25 million timesteps on the first level of the game, ``Yoshi's Island 1''.
+Figure \ref{fig:result1} shows the mean episode length and reward during training.
 \begin{figure}[htbp]
     \centering
     \begin{subfigure}{.5\textwidth}
@@ -291,11 +293,13 @@ This model was trained for 25 million timesteps on the first level of the game, 
         \includegraphics[width=\textwidth]{PPO_YoshiIsland1_rew}
         \label{fig:result1:sub2}
     \end{subfigure}
-    \caption{Results of training a PPO model on the level YoshiIsland1 for 25M timesteps.}
+    \caption{Results of training on the level YoshiIsland1 for 25M timesteps.}
     \label{fig:result1}
 \end{figure}
 
-\subsection{Model B}
+\noindent Video of the agent playing the first level: \href{https://user-images.githubusercontent.com/17729237/187476061-c6c80b38-291d-4d32-b37c-6c923a414eeb.mp4}{\color{blue}{Yoshi's Island 1}}
+
+\subsection{Model II}
 \begin{figure}[htbp]
     \centering
     \begin{subfigure}{.5\textwidth}
@@ -308,9 +312,10 @@ This model was trained for 25 million timesteps on the first level of the game, 
         \includegraphics[width=\textwidth]{PPO_YoshiIsland2_rew}
         \label{fig:result2:sub2}
     \end{subfigure}
-    \caption{Results of training a PPO model on the level YoshiIsland2 for 25M timesteps.}
+    \caption{Results of training on the level YoshiIsland2 for 25M timesteps.}
     \label{fig:result2}
 \end{figure}
+\noindent Video of the agent playing the second level: \href{https://user-images.githubusercontent.com/17729237/187476212-73ea3e18-d42b-4225-8ae2-7bb87132dab3.mp4}{\color{blue}{Yoshi's Island 2}}
 
 \printbibliography
 \end{document}
