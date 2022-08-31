@@ -4,6 +4,7 @@ import retro
 import numpy as np
 from wrappers import MarioWrapper
 from callbacks import ProgressBar, CheckpointCallback
+from utils import recording_to_video, plot_rollout
 from stable_baselines3 import PPO
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.vec_env import SubprocVecEnv, VecFrameStack
@@ -12,9 +13,15 @@ from stable_baselines3.common.env_util import make_vec_env
 
 def make_retro_env(state, n_envs=1):
     """
+    Create a vectorized Gym Retro environment for the game SuperMarioWorld.
+    Runs `n_envs` environments in parallel, each in its own process.
+    The argument `state` is the name of the level to create the environment(s) for. 
+    See https://github.com/openai/retro/tree/master/retro/data/stable/SuperMarioWorld-Snes
+    for an overview of all the states included in Gym Retro.
+
     Args:
-        state (str):
-        n_envs (int):
+        state (str): name of the state (level of the game)
+        n_envs (int): the number of environments to run in parallel
     """
 
     def mario_wrapper(env):
@@ -46,6 +53,15 @@ def make_retro_env(state, n_envs=1):
 
 
 def PPO_model(env, log='./tensorboard/'):
+    """
+    Create a reinforcement learning model which will use Proximal Policy Optimization (PPO)
+    to learn from the specified environment.
+
+    Args:
+        env (Gym Environment): the environment to learn from
+        log (str): the log location for tensorboard
+    """
+
     model = PPO(policy='CnnPolicy',
                 env=env,
                 learning_rate=1e-4,
@@ -66,6 +82,18 @@ def train_model(
     reset_num_timesteps=False,
     verbose=0
 ):
+    """
+    Train a model for `total_timesteps` timesteps.
+
+    Args:
+        model: the model to train
+        total_timesteps (int): the number of timesteps to train for
+        save_freq (int): the number of steps before saving a checkpoint
+        name_prefix (str): prefix to use for the model name if saving
+        reset_num_timesteps (bool): if true, reset num_timesteps when training a loaded model
+        verbose (int): verbosity level, <= 0: no output, > 0: info
+    """
+
     initial_timesteps = model.num_timesteps
     if reset_num_timesteps:
         initial_timesteps = 0
@@ -88,6 +116,16 @@ def train_model(
 
 
 def test_model(model, state, record=False, record_path='./recordings/'):
+    """
+    Test a model one some level of the game by playing an episode.
+
+    Args:
+        model: the model to test
+        state (str): name of the state (level of the game)
+        record (bool): whether to record the steps of the test
+        record_path (str): the location to save the recording to (if record=True)
+    """
+
     env = make_retro_env(state)
     obs = env.reset()
     if record:
@@ -104,11 +142,12 @@ def test_model(model, state, record=False, record_path='./recordings/'):
 
 def random_agent(env):
     """
-    Agent that will take a random action on each timestep.
+    Agent that will take a random action on each timestep in a vectorized environment.
 
     Args:
-        env (Gym Environment): the environment #TODO VECENV
+        env (VecEnv): the vectorized environment
     """
+
     env.reset()
     while True:
         action = env.action_space.sample()

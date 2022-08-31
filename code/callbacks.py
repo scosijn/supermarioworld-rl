@@ -4,6 +4,17 @@ from stable_baselines3.common.callbacks import BaseCallback
 
 
 class CheckpointCallback(BaseCallback):
+    """
+    Callback to save a model every `save_freq` steps.
+    Use `save_freq = save_freq // n_envs` when dealing with multiple environments.
+    
+    Args:
+        save_freq (int): the number of steps before saving a checkpoint
+        save_path (str): the location to save the model to
+        name_prefix (str): prefix to use for the model name
+        verbose (int): verbosity level, <= 0: no output, > 0: info
+    """
+
     def __init__(self, save_freq, save_path, name_prefix, verbose=0):
         super().__init__(verbose)
         self.save_freq = save_freq

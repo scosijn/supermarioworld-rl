@@ -91,6 +91,16 @@ class MarioActionWrapper(gym.ActionWrapper):
 
 
 class MarioRewardWrapper(gym.RewardWrapper):
+    """
+    Reward wrapper for the game Super Mario World.
+    The default reward for each step is the difference in x-position
+    between that step and the previous step minus one.
+
+    Args:
+        env (Gym Environment): the environment to wrap
+        include_y_pos (bool): whether to include the difference in y_pos in the reward
+    """
+
     def __init__(self, env, include_y_pos=False):
         super().__init__(env)
         self.include_y_pos = include_y_pos
@@ -118,7 +128,7 @@ class MarioRewardWrapper(gym.RewardWrapper):
             y_pos = info['y_pos']
             if self.prev_y_pos is None:
                 self.prev_y_pos = y_pos
-            rew += np.sign(-1 * (y_pos - self.prev_y_pos))
+            rew += -1 * (y_pos - self.prev_y_pos)
             self.prev_y_pos = y_pos
         return rew
 
@@ -156,6 +166,7 @@ class StickyActions(gym.Wrapper):
         env (Gym Environment): the environment to wrap
         stickiness (float): the probability of executing the previous action
     """
+
     def __init__(self, env, stickiness):
         super().__init__(env)
         assert 0 <= stickiness <= 1
@@ -206,6 +217,19 @@ class FrameSkip(gym.Wrapper):
 
 
 class MarioWrapper(gym.Wrapper):
+    """
+    A combination of several wrappers used to prepare a Gym Retro environment for the game Super Mario World.
+
+    Args:
+        env (Gym Environment): the environment to wrap
+        actions (retro.Actions): action space to convert to
+        screen_size (tuple(int, int)): dimensions to resize the observation to
+        grayscale (bool): whether to convert the observation to grayscale
+        stickiness (float): the probability of executing the previous action
+        n_skip (int): the number of frames to skip
+        y_pos_reward (bool): whether to include a reward for y_position
+    """
+
     def __init__(
         self,
         env,
